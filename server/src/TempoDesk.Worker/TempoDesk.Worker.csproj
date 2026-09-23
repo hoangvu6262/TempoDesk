@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-TempoDesk.Worker-e12fbc15-2687-4717-a48e-5ab51392e18c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TempoDesk.Application\TempoDesk.Application.csproj" />
+    <ProjectReference Include="..\TempoDesk.Infrastructure\TempoDesk.Infrastructure.csproj" />
+    <ProjectReference Include="..\TempoDesk.DocumentProcessing\TempoDesk.DocumentProcessing.csproj" />
+  </ItemGroup>
+</Project>

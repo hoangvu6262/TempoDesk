@@ -1,0 +1,28 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# JavaScript
+**/node_modules/
+**/dist/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+
+# Test and generated artifacts
+TestResults/
+coverage/
+artifacts/
+
+# Local documentation
+/docs/
