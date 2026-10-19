@@ -53,6 +53,7 @@ The Domain project has no dependency on the other backend projects. Business rul
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Node.js](https://nodejs.org/) and npm
+- Docker with Compose for PostgreSQL and database migrations
 
 ### Run the web application
 
@@ -61,6 +62,18 @@ cd client/web
 npm install
 npm run dev
 ```
+
+### Run PostgreSQL and database migrations
+
+Copy `.env.example` to `.env` and replace the password placeholders. Then run
+from the repository root:
+
+```bash
+docker compose run --build --rm migrator
+```
+
+This starts PostgreSQL and applies pending SQL migrations. See
+[the database workflow](database/README.md) for subsequent schema changes and checks.
 
 ### Run the API
 

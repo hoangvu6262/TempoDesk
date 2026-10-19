@@ -21,5 +21,23 @@ services:
       retries: 10
       start_period: 10s
 
+  migrator:
+    profiles: [tools]
+    image: tempodesk-migrator:local
+    platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: server/tools/TempoDesk.DatabaseMigrator/Dockerfile
+      platforms:
+        - ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    environment:
+      TEMPODESK_DB_HOST: postgres
+      TEMPODESK_DB_PORT: "5432"
+      TEMPODESK_DB_NAME: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      TEMPODESK_MIGRATION_PASSWORD: ${MIGRATION_PASSWORD:?Set MIGRATION_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:

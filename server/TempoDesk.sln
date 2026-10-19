@@ -27,6 +27,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempoDesk.IntegrationTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempoDesk.Api.Tests", "tests\TempoDesk.Api.Tests\TempoDesk.Api.Tests.csproj", "{75AB918A-D83F-4235-87F7-6947D8995189}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempoDesk.DatabaseMigrator", "tools\TempoDesk.DatabaseMigrator\TempoDesk.DatabaseMigrator.csproj", "{6DE77B66-B565-4C67-A480-53418337599C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -157,6 +161,18 @@ Global
 		{75AB918A-D83F-4235-87F7-6947D8995189}.Release|x64.Build.0 = Release|Any CPU
 		{75AB918A-D83F-4235-87F7-6947D8995189}.Release|x86.ActiveCfg = Release|Any CPU
 		{75AB918A-D83F-4235-87F7-6947D8995189}.Release|x86.Build.0 = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|x64.Build.0 = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Debug|x86.Build.0 = Debug|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|x64.ActiveCfg = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|x64.Build.0 = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|x86.ActiveCfg = Release|Any CPU
+		{6DE77B66-B565-4C67-A480-53418337599C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,5 +188,6 @@ Global
 		{373BB1AB-4078-4995-9AE3-AD32D39B3BA8} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{795FAE90-263D-431B-86ED-E12F54F4A764} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{75AB918A-D83F-4235-87F7-6947D8995189} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{6DE77B66-B565-4C67-A480-53418337599C} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal
