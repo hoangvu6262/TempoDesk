@@ -1,9 +1,10 @@
 .git
-.env
-.env.*
+**/.env
+**/.env.*
 docs
 artifacts
 **/bin
 **/obj
 **/node_modules
+**/dist
 **/appsettings.Local.json

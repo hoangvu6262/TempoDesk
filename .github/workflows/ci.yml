@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            server/**/*.csproj
+            server/Directory.Build.props
+            global.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: node --test scripts/check-vulnerabilities.test.mjs
+      - run: dotnet restore server/TempoDesk.sln -p:NuGetAuditLevel=high
+      - run: dotnet build server/TempoDesk.sln --configuration Release --no-restore
+      - name: Backend tests and coverage
+        run: dotnet test server/TempoDesk.sln --configuration Release --no-build --logger trx --results-directory artifacts/test-results --collect 'XPlat Code Coverage'
+      - name: NuGet dependency policy
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          mkdir -p artifacts/audit
+          dotnet list server/TempoDesk.sln package --vulnerable --include-transitive --format json --output-version 1 --no-restore > artifacts/audit/nuget.json
+          node scripts/check-vulnerabilities.mjs artifacts/audit/nuget.json
+      - name: Upload backend test results, coverage, and audit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-results
+          path: |
+            artifacts/test-results/
+            artifacts/audit/
+          if-no-files-found: warn
+          retention-days: 14
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client/web
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - name: Frontend tests and coverage
+        run: npm run test -- --coverage --reporter=default --reporter=junit --outputFile=../../artifacts/frontend/tests.xml
+      - run: npm run build
+      - name: npm dependency policy
+        if: ${{ !cancelled() }}
+        run: npm audit --audit-level=high
+      - name: Upload frontend test results and coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-results
+          path: artifacts/frontend/
+          if-no-files-found: warn
+          retention-days: 14
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: tempodesk-migrations-ci
+      POSTGRES_DB: tempodesk_ci
+      POSTGRES_PORT: '5432'
+      POSTGRES_PASSWORD: ci_admin_only
+      MIGRATION_PASSWORD: ci_migration_only
+      RUNTIME_PASSWORD: ci_runtime_only
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Reject tracked generated artifacts and local environments
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(bin|obj|node_modules|artifacts|TestResults)/|(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+            echo 'Generated artifacts or local environment files must not be tracked.' >&2
+            exit 1
+          fi
+      - name: Test migrations and EF Core scaffold on an isolated database
+        run: bash database/tests/migrator.sh
+      - name: Stop CI database
+        if: always()
+        run: docker compose down --volumes
+
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Full stack smoke, recovery, and persistence checks
+        run: bash docker/tests/stack.sh
+      - name: Upload stack failure logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: stack-logs
+          path: artifacts/stack.log
+          if-no-files-found: warn
+          retention-days: 14

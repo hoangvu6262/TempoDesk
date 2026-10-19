@@ -5,7 +5,7 @@ namespace TempoDesk.Domain.Tests;
 public class RepositoryStandardsTests
 {
     [Fact]
-    public void SharedSettingsAndProjectReferencesMatchRepositoryConventions()
+    public void ArchitectureSharedSettingsAndProjectReferencesMatchRepositoryConventions()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory is not null &&
@@ -43,6 +43,30 @@ public class RepositoryStandardsTests
                 .Select(reference => reference["TempoDesk.".Length..])
                 .Order(StringComparer.Ordinal);
             Assert.Equal(expected, actual);
+
+            if (name is "Domain" or "Application")
+            {
+                Assert.Empty(project.Descendants("PackageReference"));
+                Assert.Empty(project.Descendants("FrameworkReference"));
+            }
+
+            if (name == "Api")
+                foreach (var file in Directory.GetFiles(Path.Combine(root, "server", "src", "TempoDesk.Api"),
+                             "*Controller.cs", SearchOption.AllDirectories))
+                    Assert.DoesNotContain("TempoDeskDbContext", File.ReadAllText(file), StringComparison.Ordinal);
+
+            var conventions = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Commands"] = "Command", ["Queries"] = "Query", ["Handlers"] = "Handler",
+                ["Controllers"] = "Controller", ["Jobs"] = "Job"
+            };
+            foreach (var (category, suffix) in conventions)
+            {
+                var folder = Path.Combine(root, "server", "src", $"TempoDesk.{name}", category);
+                if (!Directory.Exists(folder)) continue;
+                foreach (var file in Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories))
+                    Assert.EndsWith(suffix, Path.GetFileNameWithoutExtension(file));
+            }
         }
 
         Assert.Equal(6, Directory.GetFiles(Path.Combine(root, "server", "src"),

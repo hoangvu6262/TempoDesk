@@ -10,7 +10,8 @@ docker compose run --build --rm migrator
 
 Compose khởi động PostgreSQL, chờ health check rồi chạy migrator.
 Mật khẩu được truyền từ `.env` khi chạy container; không có trong image.
-Service migrator chỉ chạy khi gọi tên nó, không tự chạy theo `docker compose up`.
+Khi chạy toàn bộ stack bằng `docker compose up --build`, migrator cũng tự chạy
+trước API/Worker. Khi chỉ cần database, gọi rõ service `postgres` hoặc `migrator`.
 `--build` bảo đảm image chứa các file SQL và code mới nhất.
 Build và run dùng cùng `DOCKER_DEFAULT_PLATFORM` (mặc định `linux/amd64`).
 Để chạy native trên máy ARM, đặt `DOCKER_DEFAULT_PLATFORM=linux/arm64` trước lệnh Compose.
@@ -135,9 +136,9 @@ trong workspace của bạn. Database và file tạm được xóa khi
 script kết thúc; database `tempodesk` không bị thay đổi.
 Không dùng `docker compose down -v` để chạy lại kiểm tra vì lệnh đó xóa dữ liệu local.
 
-Workflow `.github/workflows/foundation.yml` chạy build/test backend và cùng script
-trên pull request/push, dùng database CI với mật khẩu thử, không cần repository secret.
-Đây là CI cho SCRUM-5/7; chưa thay thế toàn bộ yêu cầu frontend/security của SCRUM-16.
+Workflow `.github/workflows/ci.yml` chạy build/test backend, frontend, kiểm tra
+dependency, migration và toàn bộ stack trên pull request/push. Database CI dùng
+mật khẩu thử, không cần repository secret.
 
 ## Chạy trực tiếp bằng .NET (tùy chọn)
 

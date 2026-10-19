@@ -1,75 +1,37 @@
-# React + TypeScript + Vite
+# TempoDesk Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Requires Node.js 22.12 or newer. The app uses React, strict TypeScript, Vite and React Router in declarative mode.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm ci
+cp .env.example .env.local
+npm run dev
+npm run lint
+npm run test
+npm run build
+npm run format:check
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Run commands from `client/web`. Vite serves http://localhost:5173. The landing page checks `/api/health/ready`; start the API at http://localhost:5023 or use Docker Compose from the repository root. A missing API renders an unavailable status, never a blank page.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+`VITE_API_BASE_URL` defaults to `/api`; `VITE_SIGNALR_BASE_URL` defaults to `/hubs`. Both accept HTTP(S) URLs or safe root-relative paths. Configuration is validated before rendering the landing page. Values in `VITE_*` are public build-time configuration: never put credentials in them. Only allowlisted build metadata is displayed.
 
+For host development, `API_PROXY_TARGET` defaults to `http://localhost:5023`. The Vite server strips `/api` before proxying to the backend and forwards `/hubs` with WebSocket support. It is server-only configuration. No SignalR connection is implemented in Sprint 0.
+
+The Dockerfile builds from the repository root and serves static files using non-root nginx on port 8080. Nginx forwards `/api/` to `http://api:8080/` and `/hubs` to the same API service. Client URLs are compiled into the image; changing them requires rebuilding. Runtime Compose values are not injected into browser code. Nginx returns the application shell for client routes, including the not-found page.
+
+## Boundaries and checks
+
+`src/app` owns shell infrastructure, `src/config` validates public environment values and `src/lib/api-client.ts` is the only HTTP boundary. Create business modules under `src/features` when their implementation starts. Feature code must use the API client; ESLint rejects direct `fetch` calls. The request-header callback reserves future token injection without implementing authentication.
+
+API requests support JSON, empty responses, caller abort and a 10-second default timeout. `ApiError` preserves status, safe Problem Details detail, trace ID and validation fields, with a `kind` discriminator for HTTP, network, cancellation, timeout and malformed JSON failures. Treat API response types as untrusted: the readiness query validates its response before displaying health. No automatic retries are performed.
+
+```sh
+npm run test -- --coverage --reporter=default --reporter=junit --outputFile=../../artifacts/frontend/tests.xml
 ```
+
+Tests run without backend services; coverage and JUnit reports go under root `artifacts/frontend`. Accessibility includes semantic landmarks, a skip link, keyboard focus and a live health status. No business routes, authentication or business feature UI are included.
+
+Toolchain references: [Vite requirements](https://vite.dev/guide/), [React Router declarative routing](https://reactrouter.com/start/declarative/routing), [Vitest guide](https://vitest.dev/guide/).

@@ -19,4 +19,26 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: [
+      'src/features/**/*.{ts,tsx}',
+      'src/app/**/*.{ts,tsx}',
+      'src/App.tsx',
+    ],
+    ignores: ['**/*.test.*'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'fetch', message: 'Use the shared API client.' },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name=/^(window|globalThis)$/][callee.property.name='fetch']",
+          message: 'Use the shared API client.',
+        },
+      ],
+    },
+  },
 ])

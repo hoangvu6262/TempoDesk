@@ -27,7 +27,6 @@ services:
       start_period: 10s
 
   migrator:
-    profiles: [tools]
     image: tempodesk-migrator:local
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
     build:
@@ -43,6 +42,97 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  api:
+    image: tempodesk-api:local
+    platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+      args:
+        PROJECT: TempoDesk.Api
+      platforms:
+        - ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    command: [dotnet, TempoDesk.Api.dll]
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Database__Host: postgres
+      Database__Port: "5432"
+      Database__Name: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      Database__Username: tempodesk_runtime
+      Database__Password: ${RUNTIME_PASSWORD:?Set RUNTIME_PASSWORD in .env}
+      Database__CommandTimeoutSeconds: "3"
+      Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-5173}
+    ports:
+      - "127.0.0.1:${API_PORT:-5023}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, dotnet, TempoDesk.Api.dll, --health-check]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    init: true
+    stop_grace_period: 20s
+
+  worker:
+    image: tempodesk-worker:local
+    platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+      args:
+        PROJECT: TempoDesk.Worker
+      platforms:
+        - ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    command: [dotnet, TempoDesk.Worker.dll]
+    environment:
+      DOTNET_ENVIRONMENT: ${DOTNET_ENVIRONMENT:-Development}
+      Database__Host: postgres
+      Database__Port: "5432"
+      Database__Name: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      Database__Username: tempodesk_runtime
+      Database__Password: ${RUNTIME_PASSWORD:?Set RUNTIME_PASSWORD in .env}
+      Database__CommandTimeoutSeconds: "3"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, dotnet, TempoDesk.Worker.dll, --health-check]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    init: true
+    stop_grace_period: 20s
+
+  web:
+    image: tempodesk-web:local
+    platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: client/web/Dockerfile
+      platforms:
+        - ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5173}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    init: true
+    stop_grace_period: 20s
 
 volumes:
   postgres_data:
