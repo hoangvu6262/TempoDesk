@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using Npgsql;
 
 try
@@ -29,7 +30,7 @@ try
             ?? "localhost",
         Port = int.Parse(
             Environment.GetEnvironmentVariable("TEMPODESK_DB_PORT")
-            ?? "5432"),
+            ?? "5432", CultureInfo.InvariantCulture),
         Database = Environment.GetEnvironmentVariable("TEMPODESK_DB_NAME")
             ?? "tempodesk",
         Username = "tempodesk_migrator",

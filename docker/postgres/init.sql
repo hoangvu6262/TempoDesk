@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
-set -euo pipefail
+\set ON_ERROR_STOP on
+\getenv db POSTGRES_DB
+\getenv migration_password MIGRATION_PASSWORD
+\getenv runtime_password RUNTIME_PASSWORD
 
-psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
-  --set=ON_ERROR_STOP=1 \
-  --set=db="$POSTGRES_DB" \
-  --set=migration_password="$MIGRATION_PASSWORD" \
-  --set=runtime_password="$RUNTIME_PASSWORD" <<'SQL'
+BEGIN;
+
 CREATE ROLE tempodesk_migrator LOGIN PASSWORD :'migration_password';
 CREATE ROLE tempodesk_runtime LOGIN PASSWORD :'runtime_password';
 
@@ -26,4 +25,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE tempodesk_migrator
   IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES
   TO tempodesk_runtime;
-SQL
+
+COMMIT;

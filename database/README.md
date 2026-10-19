@@ -21,8 +21,11 @@ Build và run dùng cùng `DOCKER_DEFAULT_PLATFORM` (mặc định `linux/amd64`
 - Lỗi SQL: rollback migration đang chạy, không ghi nhận thành công.
   Các migration đã commit trước đó vẫn được giữ lại.
 
-Không chạy `init.sh` hoặc file tạo `schema_history` thủ công trên database mới.
-`init.sh` được PostgreSQL chạy khi volume rỗng; migrator tự tạo bảng lịch sử.
+Không chạy `docker/postgres/init.sql` hoặc file tạo `schema_history` thủ công trên database mới.
+`init.sql` được PostgreSQL chạy khi volume rỗng; migrator tự tạo bảng lịch sử.
+Bootstrap dùng psql native để đọc biến môi trường, không phụ thuộc executable bit
+hoặc interpreter của shell script trên máy host. Volume cũ giữ nguyên role/dữ liệu;
+không cần chạy lại bootstrap sau khi cập nhật file này.
 Với database cũ đã tạo bảng thủ công, phải đăng ký đúng checksum của migration
 đầu tiên như bước hướng dẫn trước; runner không tự nhận một bảng có sẵn là hợp lệ.
 
@@ -53,6 +56,72 @@ không tự phát hiện một file lịch sử đã bị xóa hay cấm chèn f
 chạy tính bằng milliseconds. API/Worker không có quyền đọc/ghi bảng này.
 Bảng vận hành này không cần model nghiệp vụ EF Core.
 
+## Scaffold EF Core
+
+Cài .NET 10 SDK. Tool `dotnet-ef` và package EF Design được pin ở 10.0.10;
+Npgsql EF provider 10.0.3 chỉ nằm trong Infrastructure.
+
+Sau khi migration tạo bảng nghiệp vụ thành công, đặt mật khẩu migrator trong
+biến `TEMPODESK_MIGRATION_PASSWORD`, rồi chạy từ thư mục gốc repo:
+
+```bash
+bash database/scaffold.sh public.users public.workspaces
+```
+
+Đây là ví dụ khi các bảng đó đã tồn tại. Hiện repo chỉ có `schema_history`,
+chưa cần tạo entity nghiệp vụ. Script yêu cầu danh sách bảng tường minh và từ
+chối `schema_history`. Mỗi lần chạy, truyền đầy đủ các bảng cần có trong context.
+
+Trong zsh trên macOS, có thể nhập mật khẩu mà không lưu vào lịch sử lệnh:
+
+```bash
+read -s 'TEMPODESK_MIGRATION_PASSWORD?Nhập MIGRATION_PASSWORD: '
+export TEMPODESK_MIGRATION_PASSWORD
+```
+
+Ghi đè database/host/port bằng `TEMPODESK_DB_NAME`, `TEMPODESK_DB_HOST`,
+`TEMPODESK_DB_PORT` nếu khác `tempodesk`/`localhost`/`5432`.
+Script dùng `PGPASSWORD` cho Npgsql, nên mật khẩu không xuất hiện trong đối số
+CLI hoặc code generated; không chạy script với `bash -x`.
+
+Script khôi phục local tool, rồi gọi lệnh tương đương:
+
+```bash
+dotnet ef dbcontext scaffold \
+  'Host=localhost;Port=5432;Database=tempodesk;Username=tempodesk_migrator;GSS Encryption Mode=Disable' \
+  Npgsql.EntityFrameworkCore.PostgreSQL \
+  --project server/src/TempoDesk.Infrastructure \
+  --startup-project server/src/TempoDesk.Infrastructure \
+  --context TempoDeskDbContext \
+  --context-dir Persistence/Generated \
+  --output-dir Persistence/Generated/Entities \
+  --namespace TempoDesk.Infrastructure.Persistence.Generated.Entities \
+  --context-namespace TempoDesk.Infrastructure.Persistence.Generated \
+  --no-onconfiguring --force --table public.users --table public.workspaces
+```
+
+Khi chạy lệnh trực tiếp, đặt `PGPASSWORD` trước. `--force` ghi đè các file
+generated trùng tên: không viết business logic trong đó. Dùng partial class,
+mapper hoặc repository nằm ngoài `Generated`. Khi xóa bảng/đổi tên entity,
+review và xóa file generated cũ không còn được dùng vì EF không tự xóa chúng.
+Không dùng `dotnet ef migrations add` hoặc `database update` cho schema SQL-first.
+
+Tham khảo [EF CLI](https://learn.microsoft.com/en-us/ef/core/cli/dotnet)
+và [reverse engineering](https://learn.microsoft.com/en-us/ef/core/managing-schemas/scaffolding/).
+
+## Tổ chức SQL
+
+- `migrations/`: SQL versioned chạy theo thứ tự tên; không sửa file đã áp dụng.
+- `functions/`: định nghĩa hàm SQL để tham khảo/tái sử dụng; thay đổi phải được
+  đưa vào migration, runner không tự quét thư mục này.
+- `views/`: định nghĩa view; thay đổi cũng phải nằm trong migration.
+- `seeds/`: dữ liệu tham chiếu/dev được kiểm soát; không chứa dữ liệu cá nhân
+  hoặc bí mật. Không tự chạy seed dev trên production.
+
+Mỗi migration cần mô tả phương án hoàn tác an toàn trong comment hoặc tài liệu
+thay đổi. Không rollback migration đã commit bằng cách xóa hàng trong lịch sử;
+thêm migration sửa tiếp và đánh giá nguy cơ mất dữ liệu.
+
 ## Kiểm tra tự động
 
 ```bash
@@ -60,9 +129,15 @@ bash database/tests/migrator.sh
 ```
 
 Script dùng database tạm và bản sao migration, kiểm tra database mới, quyền,
-constraint, APPLY, SKIP, checksum và rollback. Database và file tạm được xóa khi
+constraint, APPLY, SKIP, checksum, rollback và scaffold EF trên bảng thử.
+Model được sinh trong bản sao source tạm rồi build; không ghi đè code generated
+trong workspace của bạn. Database và file tạm được xóa khi
 script kết thúc; database `tempodesk` không bị thay đổi.
 Không dùng `docker compose down -v` để chạy lại kiểm tra vì lệnh đó xóa dữ liệu local.
+
+Workflow `.github/workflows/foundation.yml` chạy build/test backend và cùng script
+trên pull request/push, dùng database CI với mật khẩu thử, không cần repository secret.
+Đây là CI cho SCRUM-5/7; chưa thay thế toàn bộ yêu cầu frontend/security của SCRUM-16.
 
 ## Chạy trực tiếp bằng .NET (tùy chọn)
 

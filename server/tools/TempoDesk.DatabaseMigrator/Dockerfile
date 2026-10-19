@@ -1,6 +1,7 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
-WORKDIR /src
+WORKDIR /src/server/tools/TempoDesk.DatabaseMigrator
+COPY server/Directory.Build.props /src/server/
 COPY server/tools/TempoDesk.DatabaseMigrator/*.csproj ./
 RUN dotnet restore -a "$TARGETARCH"
 COPY server/tools/TempoDesk.DatabaseMigrator/ ./

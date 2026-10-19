@@ -2,6 +2,7 @@
 .env
 .env.*
 docs
+artifacts
 **/bin
 **/obj
 **/node_modules

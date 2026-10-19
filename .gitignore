@@ -11,6 +11,8 @@
 # IDE and OS
 .idea/
 .vscode/
+.vs/
+*.sln.iml
 .DS_Store
 
 # Local configuration and secrets
@@ -21,7 +23,12 @@
 
 # Test and generated artifacts
 TestResults/
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
 coverage/
+**/coverage/
 artifacts/
 
 # Local documentation

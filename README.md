@@ -111,6 +111,17 @@ dotnet build server/TempoDesk.sln
 dotnet test server/TempoDesk.sln
 ```
 
+Shared backend settings are in `server/Directory.Build.props`; generated build
+output is under root `artifacts/`. To verify the SQL-first workflow, including
+EF Core scaffolding on a temporary database:
+
+```bash
+bash database/tests/migrator.sh
+```
+
+See [the scaffold instructions](database/README.md#scaffold-ef-core) before
+generating business entities in Infrastructure.
+
 ## License
 
 No license has been specified for this project. All rights are reserved unless a license is added later.

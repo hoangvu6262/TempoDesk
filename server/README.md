@@ -17,6 +17,33 @@ TempoDesk.Worker ------------------> Application + Infrastructure + DocumentProc
 
 `TempoDesk.Domain` must not reference another project. The generated database-first model belongs only to Infrastructure.
 
+## Shared build settings
+
+`Directory.Build.props` applies to all six production projects, four test projects
+and the database migration tool. It enables C# 14, nullable reference types,
+implicit usings, .NET 10 recommended analyzers, deterministic builds and warnings
+as errors. Root `global.json` selects a stable .NET 10 SDK.
+
+Build and test from the repository root:
+
+```bash
+dotnet build server/TempoDesk.sln
+dotnet test server/TempoDesk.sln --no-build
+dotnet sln server/TempoDesk.sln list
+```
+
+Build and restore output goes to `artifacts/bin/<project>/<configuration>` and
+`artifacts/obj/<project>`. Do not commit these directories or local configuration.
+The repository conventions test verifies project counts and dependency direction.
+
+## Database-first persistence
+
+Run SQL migrations before scaffolding. The pinned local `dotnet-ef` tool and
+Npgsql EF Core provider generate code only into
+`src/TempoDesk.Infrastructure/Persistence/Generated`.
+See [the database workflow](../database/README.md#scaffold-ef-core) for the command,
+credentials and generated-file rules. Domain stays independent of EF Core.
+
 ## Complete target structure
 
 Folders are created when their first use case is implemented. This avoids empty placeholder classes while keeping the target layout explicit.
@@ -269,4 +296,3 @@ server/
 - Keep Jira HTTP/OAuth concerns in Infrastructure and Jira orchestration in Application.
 - Keep job handlers thin; they dispatch Application use cases.
 - Create a listed source file only when implementing its corresponding behavior and test.
-

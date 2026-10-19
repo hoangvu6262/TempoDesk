@@ -13,7 +13,12 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+      - type: bind
+        source: ./docker/postgres/init.sql
+        target: /docker-entrypoint-initdb.d/01-init.sql
+        read_only: true
+        bind:
+          create_host_path: false
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d \"$${POSTGRES_DB}\""]
       interval: 5s

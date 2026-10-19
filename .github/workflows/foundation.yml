@@ -1,0 +1,38 @@
+name: Backend and database foundation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      POSTGRES_DB: tempodesk_ci
+      POSTGRES_PORT: "5432"
+      POSTGRES_PASSWORD: ci_admin_only
+      MIGRATION_PASSWORD: ci_migration_only
+      RUNTIME_PASSWORD: ci_runtime_only
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet build server/TempoDesk.sln --configuration Release
+      - run: dotnet test server/TempoDesk.sln --configuration Release --no-build
+      - name: Check tracked artifacts
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(bin|obj|node_modules|artifacts|TestResults)/|(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+            echo 'Generated artifacts or local environment files must not be tracked.' >&2
+            exit 1
+          fi
+      - name: Test migrations and EF Core scaffold on an isolated database
+        run: bash database/tests/migrator.sh
+      - name: Stop CI services
+        if: always()
+        run: docker compose down
