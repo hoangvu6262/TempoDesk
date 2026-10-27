@@ -37,10 +37,10 @@ test('fails closed on tool errors, unsupported reports, and malformed severities
 
 test('CLI exits unsuccessfully for malformed JSON and high vulnerabilities', () => {
   for (const input of ['not json', JSON.stringify(report('High'))]) {
-    const result = spawnSync(process.execPath, ['scripts/check-vulnerabilities.mjs', '/dev/stdin'], { input });
+    const result = spawnSync(process.execPath, ['scripts/check-vulnerabilities.mjs', '-'], { input });
     assert.equal(result.status, 1);
   }
-  const clean = spawnSync(process.execPath, ['scripts/check-vulnerabilities.mjs', '/dev/stdin'], {
+  const clean = spawnSync(process.execPath, ['scripts/check-vulnerabilities.mjs', '-'], {
     input: JSON.stringify(report('Low')),
   });
   assert.equal(clean.status, 0);

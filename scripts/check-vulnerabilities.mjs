@@ -34,7 +34,8 @@ export function checkVulnerabilities(report) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const failures = checkVulnerabilities(JSON.parse(readFileSync(process.argv[2], 'utf8')));
+  const input = process.argv[2] === '-' ? 0 : process.argv[2];
+  const failures = checkVulnerabilities(JSON.parse(readFileSync(input, 'utf8')));
   if (failures.length) {
     console.error(failures.join('\n'));
     process.exitCode = 1;
