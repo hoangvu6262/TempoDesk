@@ -27,4 +27,13 @@
     <ProjectReference Include="..\..\src\TempoDesk.Application\TempoDesk.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="../../../database/migrations/202610271944_create_indentity_schema.sql"
+          Link="Database/Migrations/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../database/migrations/202610272000_fix_user_claim_id_type.sql"
+          Link="Database/Migrations/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
