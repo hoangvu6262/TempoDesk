@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using TempoDesk.Application.Authentication;
 using TempoDesk.Infrastructure.Configuration;
+using TempoDesk.Infrastructure.Email;
 
 namespace TempoDesk.Infrastructure.Identity;
 
@@ -67,7 +68,7 @@ public static class IdentityConfiguration
             .AddDefaultTokenProviders();
 
         services.TryAddScoped<IEmailVerificationSender,
-            DeferredEmailVerificationSender>();
+            SmtpEmailVerificationSender>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
 
