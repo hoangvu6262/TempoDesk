@@ -1,6 +1,11 @@
 name: tempodesk
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+
   postgres:
     image: postgres:18.6-bookworm
     environment:
@@ -63,6 +68,11 @@ services:
       Database__Password: ${RUNTIME_PASSWORD:?Set RUNTIME_PASSWORD in .env}
       Database__CommandTimeoutSeconds: "3"
       Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-5173}
+      Email__Enabled: "true"
+      Email__Host: mailpit
+      Email__Port: "1025"
+      Email__From: no-reply@tempodesk.local
+      Email__FrontendBaseUrl: http://localhost:${WEB_PORT:-5173}
     ports:
       - "127.0.0.1:${API_PORT:-5023}:8080"
     depends_on:
@@ -70,6 +80,8 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
     healthcheck:
       test: [CMD, dotnet, TempoDesk.Api.dll, --health-check]
       interval: 5s
