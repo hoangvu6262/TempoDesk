@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using TempoDesk.Api;
 using TempoDesk.Infrastructure.Configuration;
 using TempoDesk.Infrastructure.Health;
+using TempoDesk.Infrastructure.Identity;
 
 if (args.Contains("--health-check", StringComparer.Ordinal))
 {
@@ -18,6 +19,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.None);
 builder.Services.AddFoundationConfiguration(builder.Configuration);
+builder.Services.AddTempoDeskIdentity();
 builder.Services.AddSingleton<DatabaseReadiness>();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
