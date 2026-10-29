@@ -103,7 +103,9 @@ public sealed class FoundationApiTests
     }
 }
 
-public sealed class FoundationFactory(string environment = "Development") : WebApplicationFactory<Program>
+public sealed class FoundationFactory(
+    string environment = "Development",
+    Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<Program>
 {
     public RecordingLogs Logs { get; } = new();
 
@@ -119,6 +121,7 @@ public sealed class FoundationFactory(string environment = "Development") : WebA
         {
             services.AddSingleton<ILoggerProvider>(Logs);
             services.AddControllers().AddApplicationPart(typeof(FailureController).Assembly);
+            configureServices?.Invoke(services);
         });
     }
 }
