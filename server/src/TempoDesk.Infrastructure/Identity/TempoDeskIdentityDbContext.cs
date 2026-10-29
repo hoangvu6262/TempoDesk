@@ -8,6 +8,12 @@ public sealed class TempoDeskIdentityDbContext(
     DbContextOptions<TempoDeskIdentityDbContext> options)
     : IdentityUserContext<ApplicationUser, Guid>(options)
 {
+    public DbSet<EmailVerificationToken> EmailVerificationTokens =>
+        Set<EmailVerificationToken>();
+
+    public DbSet<SecurityAuditLog> SecurityAuditLogs =>
+        Set<SecurityAuditLog>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -16,6 +22,8 @@ public sealed class TempoDeskIdentityDbContext(
         ConfigureUserClaims(builder);
         ConfigureExternalLogins(builder);
         ConfigureUserTokens(builder);
+        ConfigureEmailVerificationTokens(builder);
+        ConfigureSecurityAuditLogs(builder);
     }
 
     private static void ConfigureUsers(ModelBuilder builder)
@@ -161,6 +169,52 @@ public sealed class TempoDeskIdentityDbContext(
 
             entity.Property(token => token.Value)
                 .HasColumnName("value");
+        });
+    }
+
+    private static void ConfigureEmailVerificationTokens(ModelBuilder builder)
+    {
+        builder.Entity<EmailVerificationToken>(entity =>
+        {
+            entity.ToTable("email_verification_tokens", "public");
+            entity.HasKey(token => token.Id);
+            entity.Property(token => token.Id).HasColumnName("id");
+            entity.Property(token => token.UserId).HasColumnName("user_id");
+            entity.Property(token => token.TokenHash).HasColumnName("token_hash");
+            entity.Property(token => token.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(token => token.UsedAt).HasColumnName("used_at");
+            entity.Property(token => token.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(token => token.TokenHash)
+                .HasDatabaseName("ux_email_verification_tokens_token_hash")
+                .IsUnique();
+            entity.HasIndex(token => token.UserId)
+                .HasDatabaseName("ix_email_verification_tokens_user_id");
+            entity.HasIndex(token => token.ExpiresAt)
+                .HasDatabaseName("ix_email_verification_tokens_expires_at");
+        });
+    }
+
+    private static void ConfigureSecurityAuditLogs(ModelBuilder builder)
+    {
+        builder.Entity<SecurityAuditLog>(entity =>
+        {
+            entity.ToTable("security_audit_logs", "public");
+            entity.HasKey(audit => audit.Id);
+            entity.Property(audit => audit.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+            entity.Property(audit => audit.UserId).HasColumnName("user_id");
+            entity.Property(audit => audit.EventType)
+                .HasColumnName("event_type")
+                .HasMaxLength(100);
+            entity.Property(audit => audit.Succeeded).HasColumnName("succeeded");
+            entity.Property(audit => audit.OccurredAt).HasColumnName("occurred_at");
+            entity.HasIndex(audit => new { audit.UserId, audit.OccurredAt })
+                .HasDatabaseName("ix_security_audit_logs_user_occurred_at")
+                .IsDescending(false, true);
+            entity.HasIndex(audit => new { audit.EventType, audit.OccurredAt })
+                .HasDatabaseName("ix_security_audit_logs_event_occurred_at")
+                .IsDescending(false, true);
         });
     }
 }

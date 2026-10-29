@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using TempoDesk.Application.Authentication;
 using TempoDesk.Infrastructure.Configuration;
 
 namespace TempoDesk.Infrastructure.Identity;
@@ -13,6 +15,7 @@ public static class IdentityConfiguration
         this IServiceCollection services)
     {
         services.AddDataProtection();
+        services.TryAddSingleton(TimeProvider.System);
 
         services.AddDbContext<TempoDeskIdentityDbContext>(
             (provider, options) =>
@@ -62,6 +65,11 @@ public static class IdentityConfiguration
             .AddEntityFrameworkStores<TempoDeskIdentityDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
+
+        services.TryAddScoped<IEmailVerificationSender,
+            DeferredEmailVerificationSender>();
+        services.AddScoped<IAccountRegistrationService,
+            AccountRegistrationService>();
 
         return services;
     }
