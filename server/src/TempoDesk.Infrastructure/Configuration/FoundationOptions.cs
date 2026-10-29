@@ -70,7 +70,8 @@ public static class FoundationConfiguration
         Bind<JiraOptions>("Jira", o => !o.Enabled || (HttpUrl(o.BaseUrl) && !string.IsNullOrWhiteSpace(o.Token) && o.TimeoutSeconds is >= 1 and <= 300));
         Bind<EmailOptions>("Email", o => !o.Enabled ||
             (!string.IsNullOrWhiteSpace(o.Host) && o.Port is > 0 and <= 65535 &&
-             System.Net.Mail.MailAddress.TryCreate(o.From, out _) && HttpUrl(o.FrontendBaseUrl)));
+             System.Net.Mail.MailAddress.TryCreate(o.From, out _) && HttpUrl(o.FrontendBaseUrl) &&
+             new Uri(o.FrontendBaseUrl) is { Query: "", Fragment: "" }));
         Bind<FileStorageOptions>("FileStorage", o => !o.Enabled || (Path.IsPathFullyQualified(o.RootPath) && o.MaxFileSizeBytes > 0));
         Bind<BackgroundJobsOptions>("BackgroundJobs", o => o.HeartbeatIntervalSeconds is >= 1 and <= 10 && Path.IsPathFullyQualified(o.HeartbeatPath));
         return services;

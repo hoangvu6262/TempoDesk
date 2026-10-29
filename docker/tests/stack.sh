@@ -4,7 +4,7 @@ cd "$(dirname "$0")/../.."
 
 # This project owns its disposable volume; never use the developer's project name.
 export COMPOSE_PROJECT_NAME="tempodesk_smoke_${RANDOM}_$$"
-export POSTGRES_DB=tempodesk_smoke POSTGRES_PORT=0 API_PORT=0 WEB_PORT=0
+export POSTGRES_DB=tempodesk_smoke POSTGRES_PORT=0 API_PORT=0 WEB_PORT=0 MAILPIT_PORT=0
 export POSTGRES_PASSWORD=smoke_admin_only
 export MIGRATION_PASSWORD=smoke_migration_only RUNTIME_PASSWORD=smoke_runtime_only
 export ASPNETCORE_ENVIRONMENT=Development DOTNET_ENVIRONMENT=Development

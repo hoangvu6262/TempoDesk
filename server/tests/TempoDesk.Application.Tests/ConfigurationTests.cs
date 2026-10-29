@@ -64,7 +64,8 @@ public sealed class ConfigurationTests
     {
         using var provider = Create(new()
         {
-            ["Email:Enabled"] = "true", ["Email:Host"] = "localhost", ["Email:From"] = address
+            ["Email:Enabled"] = "true", ["Email:Host"] = "localhost", ["Email:From"] = address,
+            ["Email:FrontendBaseUrl"] = "http://localhost:5173"
         });
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<EmailOptions>>().Value);
     }
@@ -85,8 +86,11 @@ public sealed class ConfigurationTests
         finally { Environment.SetEnvironmentVariable(prefix + "Database__Port", null); }
     }
 
-    [Fact]
-    public void EnabledEmailAcceptsValidFrontendBaseUrl()
+    [Theory]
+    [InlineData("http://localhost:5173")]
+    [InlineData("https://app.example/tempo")]
+    [InlineData("https://app.example/tempo/")]
+    public void EnabledEmailAcceptsValidFrontendBaseUrl(string frontendBaseUrl)
     {
         using var provider = Create(new()
         {
@@ -94,11 +98,11 @@ public sealed class ConfigurationTests
             ["Email:Enabled"] = "true",
             ["Email:Host"] = "localhost",
             ["Email:From"] = "no-reply@tempodesk.local",
-            ["Email:FrontendBaseUrl"] = "http://localhost:5173"
+            ["Email:FrontendBaseUrl"] = frontendBaseUrl
         });
 
         Assert.Equal(
-            "http://localhost:5173",
+            frontendBaseUrl,
             provider.GetRequiredService<IOptions<EmailOptions>>()
                 .Value.FrontendBaseUrl);
     }
@@ -107,6 +111,8 @@ public sealed class ConfigurationTests
     [InlineData("")]
     [InlineData("javascript:alert(1)")]
     [InlineData("//example.com")]
+    [InlineData("https://app.example/tempo?lang=en")]
+    [InlineData("https://app.example/tempo#section")]
     public void EnabledEmailRejectsInvalidFrontendBaseUrl(string frontendBaseUrl)
     {
         using var provider = Create(new()
