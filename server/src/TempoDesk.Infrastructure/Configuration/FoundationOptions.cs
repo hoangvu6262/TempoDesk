@@ -41,6 +41,7 @@ public sealed class EmailOptions
     public int Port { get; set; } = 587;
     public string From { get; set; } = "";
     public string Password { get; set; } = "";
+    public string FrontendBaseUrl { get; set; } = "";
 }
 
 public sealed class FileStorageOptions
@@ -67,7 +68,9 @@ public static class FoundationConfiguration
         Bind<AuthenticationOptions>("Authentication", o => !o.Enabled || (HttpUrl(o.Authority) && !string.IsNullOrWhiteSpace(o.Audience)));
         Bind<CorsOptions>("Cors", o => o.AllowedOrigins.Length > 0 && o.AllowedOrigins.All(HttpUrl));
         Bind<JiraOptions>("Jira", o => !o.Enabled || (HttpUrl(o.BaseUrl) && !string.IsNullOrWhiteSpace(o.Token) && o.TimeoutSeconds is >= 1 and <= 300));
-        Bind<EmailOptions>("Email", o => !o.Enabled || (!string.IsNullOrWhiteSpace(o.Host) && o.Port is > 0 and <= 65535 && System.Net.Mail.MailAddress.TryCreate(o.From, out _)));
+        Bind<EmailOptions>("Email", o => !o.Enabled ||
+            (!string.IsNullOrWhiteSpace(o.Host) && o.Port is > 0 and <= 65535 &&
+             System.Net.Mail.MailAddress.TryCreate(o.From, out _) && HttpUrl(o.FrontendBaseUrl)));
         Bind<FileStorageOptions>("FileStorage", o => !o.Enabled || (Path.IsPathFullyQualified(o.RootPath) && o.MaxFileSizeBytes > 0));
         Bind<BackgroundJobsOptions>("BackgroundJobs", o => o.HeartbeatIntervalSeconds is >= 1 and <= 10 && Path.IsPathFullyQualified(o.HeartbeatPath));
         return services;

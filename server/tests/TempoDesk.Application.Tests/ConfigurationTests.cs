@@ -84,4 +84,41 @@ public sealed class ConfigurationTests
         }
         finally { Environment.SetEnvironmentVariable(prefix + "Database__Port", null); }
     }
+
+    [Fact]
+    public void EnabledEmailAcceptsValidFrontendBaseUrl()
+    {
+        using var provider = Create(new()
+        {
+            ["Database:Password"] = "private-password",
+            ["Email:Enabled"] = "true",
+            ["Email:Host"] = "localhost",
+            ["Email:From"] = "no-reply@tempodesk.local",
+            ["Email:FrontendBaseUrl"] = "http://localhost:5173"
+        });
+
+        Assert.Equal(
+            "http://localhost:5173",
+            provider.GetRequiredService<IOptions<EmailOptions>>()
+                .Value.FrontendBaseUrl);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("//example.com")]
+    public void EnabledEmailRejectsInvalidFrontendBaseUrl(string frontendBaseUrl)
+    {
+        using var provider = Create(new()
+        {
+            ["Database:Password"] = "private-password",
+            ["Email:Enabled"] = "true",
+            ["Email:Host"] = "localhost",
+            ["Email:From"] = "no-reply@tempodesk.local",
+            ["Email:FrontendBaseUrl"] = frontendBaseUrl
+        });
+
+        Assert.Throws<OptionsValidationException>(() =>
+            provider.GetRequiredService<IOptions<EmailOptions>>().Value);
+    }
 }
