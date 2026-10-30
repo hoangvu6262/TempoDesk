@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using TempoDesk.Application.Authentication;
 
@@ -10,7 +9,7 @@ public sealed class LoginController(IAccountLoginService login) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login(
-        LoginRequest request,
+        LoginRequestDto request,
         CancellationToken cancellationToken)
     {
         var result = await login.LoginAsync(
@@ -18,21 +17,7 @@ public sealed class LoginController(IAccountLoginService login) : ControllerBase
         if (!result.Succeeded)
             return Unauthorized();
 
-        return Ok(new LoginResponse(
+        return Ok(new LoginResponseDto(
             result.AccessToken!, "Bearer", result.ExpiresIn));
     }
 }
-
-public sealed class LoginRequest
-{
-    [Required, EmailAddress, MaxLength(256)]
-    public string Email { get; init; } = "";
-
-    [Required, MaxLength(1024)]
-    public string Password { get; init; } = "";
-}
-
-public sealed record LoginResponse(
-    string AccessToken,
-    string TokenType,
-    int ExpiresIn);
