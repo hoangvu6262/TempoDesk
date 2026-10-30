@@ -18,6 +18,10 @@
 - Do not move Identity entities or `TempoDeskIdentityDbContext`.
 - Preserve current namespaces to keep the diff structural and avoid unrelated caller edits.
 
+## Approved flattening amendment
+
+After the initial execution, the feature structure was flattened to avoid one-file `Dtos/`, `Models/`, `Services/`, and `Templates/` folders. This amendment supersedes the deeper paths in Tasks 1-4: each listed file lives directly in its `Login`, `Registration`, `Email`, or `Authentication` feature folder. Tests remain at `Authentication/<Feature>/...`. Concern subfolders are added only when a feature grows enough for the grouping to reduce navigation.
+
 ---
 
 ### Task 1: API feature folders and DTO files

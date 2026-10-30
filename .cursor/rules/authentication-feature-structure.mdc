@@ -6,8 +6,9 @@ alwaysApply: true
 # Authentication Structure
 
 - Organize authentication code by feature inside the existing API, Application, and Infrastructure layers.
-- Keep HTTP DTOs in API feature `Dtos/` folders and suffix their names with `Dto`.
-- Keep service interfaces in Application `Services/` folders.
-- Keep framework-dependent service implementations in Infrastructure `Services/` folders.
+- Keep HTTP DTOs in API feature folders and suffix their names with `Dto`.
+- Keep service interfaces in Application feature folders.
+- Keep framework-dependent service implementations in Infrastructure feature folders.
 - Put repository interfaces in Application and implementations in Infrastructure only when they add a real persistence boundary; do not wrap framework stores without a concrete need.
+- Add concern subfolders such as `Dtos/`, `Models/`, `Services/`, or `Repositories/` only when a feature has enough files for the grouping to reduce navigation.
 - Give each public type its own file, except tightly coupled private test helpers.
