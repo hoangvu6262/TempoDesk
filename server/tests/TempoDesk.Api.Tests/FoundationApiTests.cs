@@ -14,6 +14,20 @@ namespace TempoDesk.Api.Tests;
 
 public sealed class FoundationApiTests
 {
+    [Fact]
+    public void ProductionConfigurationDeclaresDisabledEmailDefaults()
+    {
+        using var factory = new FoundationFactory("Production");
+        using var scope = factory.Services.CreateScope();
+        var email = scope.ServiceProvider
+            .GetRequiredService<IConfiguration>()
+            .GetSection("Email");
+
+        Assert.True(email.Exists());
+        Assert.False(email.GetValue<bool>("Enabled"));
+        Assert.Equal(587, email.GetValue<int>("Port"));
+    }
+
     [Theory]
     [InlineData(400)]
     [InlineData(401)]
