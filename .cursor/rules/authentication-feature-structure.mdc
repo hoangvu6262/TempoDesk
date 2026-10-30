@@ -1,0 +1,13 @@
+---
+description: Authentication feature folder and type naming conventions
+alwaysApply: true
+---
+
+# Authentication Structure
+
+- Organize authentication code by feature inside the existing API, Application, and Infrastructure layers.
+- Keep HTTP DTOs in API feature `Dtos/` folders and suffix their names with `Dto`.
+- Keep service interfaces in Application `Services/` folders.
+- Keep framework-dependent service implementations in Infrastructure `Services/` folders.
+- Put repository interfaces in Application and implementations in Infrastructure only when they add a real persistence boundary; do not wrap framework stores without a concrete need.
+- Give each public type its own file, except tightly coupled private test helpers.
