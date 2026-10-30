@@ -98,6 +98,7 @@ public static class IdentityConfiguration
             SmtpEmailVerificationSender>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
+        services.AddScoped<IAccountLoginService, AccountLoginService>();
 
         return services;
     }
