@@ -1,8 +1,11 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using TempoDesk.Application.Authentication;
 using TempoDesk.Infrastructure.Configuration;
@@ -17,6 +20,30 @@ public static class IdentityConfiguration
     {
         services.AddDataProtection();
         services.TryAddSingleton(TimeProvider.System);
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer();
+        services.AddAuthorization();
+        services.AddOptions<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<AuthenticationOptions>>((options, configured) =>
+            {
+                var settings = configured.Value;
+                if (!settings.Enabled)
+                    return;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(settings.SigningKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = settings.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = settings.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
 
         services.AddDbContext<TempoDeskIdentityDbContext>(
             (provider, options) =>
