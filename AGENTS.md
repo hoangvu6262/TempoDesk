@@ -1,4 +1,3 @@
 # Repository Instructions
 
-- Treat `/docs/` as local-only content.
-- Do not stage, force-add, or commit any files under `/docs/`.
+- Track and commit documentation under `/docs/` like other project files.
