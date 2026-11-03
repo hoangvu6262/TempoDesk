@@ -1,6 +1,6 @@
 namespace TempoDesk.Api.Controllers;
 
-public sealed record LoginResponseDto(
+public sealed record AccessTokenResponseDto(
     string AccessToken,
     string TokenType,
     int ExpiresIn);
