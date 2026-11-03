@@ -1,6 +1,10 @@
 namespace TempoDesk.Application.Authentication;
 
-public sealed record LoginResult(string? AccessToken, int ExpiresIn)
+public sealed record LoginResult(
+    string? AccessToken,
+    int ExpiresIn,
+    string? RefreshToken = null,
+    DateTimeOffset? RefreshTokenExpiresAt = null)
 {
     public bool Succeeded => AccessToken is not null;
 
