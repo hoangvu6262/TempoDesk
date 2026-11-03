@@ -67,6 +67,11 @@ services:
       Database__Username: tempodesk_runtime
       Database__Password: ${RUNTIME_PASSWORD:?Set RUNTIME_PASSWORD in .env}
       Database__CommandTimeoutSeconds: "3"
+      Authentication__Enabled: "true"
+      Authentication__Issuer: http://localhost:${API_PORT:-5023}
+      Authentication__Audience: tempodesk-api
+      Authentication__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
+      Authentication__AccessTokenMinutes: "15"
       Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-5173}
       Email__Enabled: "true"
       Email__Host: mailpit

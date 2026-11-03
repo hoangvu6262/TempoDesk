@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,8 +18,10 @@ public sealed class DatabaseOptions
 public sealed class AuthenticationOptions
 {
     public bool Enabled { get; set; }
-    public string Authority { get; set; } = "";
+    public string Issuer { get; set; } = "";
     public string Audience { get; set; } = "";
+    public string SigningKey { get; set; } = "";
+    public int AccessTokenMinutes { get; set; } = 15;
 }
 
 public sealed class CorsOptions
@@ -65,7 +68,10 @@ public static class FoundationConfiguration
         Bind<DatabaseOptions>("Database", o => !string.IsNullOrWhiteSpace(o.Host) && o.Port is > 0 and <= 65535 &&
             !string.IsNullOrWhiteSpace(o.Name) && !string.IsNullOrWhiteSpace(o.Username) &&
             !string.IsNullOrWhiteSpace(o.Password) && o.CommandTimeoutSeconds is >= 1 and <= 60);
-        Bind<AuthenticationOptions>("Authentication", o => !o.Enabled || (HttpUrl(o.Authority) && !string.IsNullOrWhiteSpace(o.Audience)));
+        Bind<AuthenticationOptions>("Authentication", o => !o.Enabled ||
+            (HttpUrl(o.Issuer) && !string.IsNullOrWhiteSpace(o.Audience) &&
+             Encoding.UTF8.GetByteCount(o.SigningKey) >= 32 &&
+             o.AccessTokenMinutes is >= 1 and <= 60));
         Bind<CorsOptions>("Cors", o => o.AllowedOrigins.Length > 0 && o.AllowedOrigins.All(HttpUrl));
         Bind<JiraOptions>("Jira", o => !o.Enabled || (HttpUrl(o.BaseUrl) && !string.IsNullOrWhiteSpace(o.Token) && o.TimeoutSeconds is >= 1 and <= 300));
         Bind<EmailOptions>("Email", o => !o.Enabled ||

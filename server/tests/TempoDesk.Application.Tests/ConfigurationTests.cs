@@ -54,6 +54,54 @@ public sealed class ConfigurationTests
         });
     }
 
+    [Theory]
+    [InlineData("Authentication:Issuer", "")]
+    [InlineData("Authentication:Audience", "")]
+    [InlineData("Authentication:SigningKey", "short")]
+    [InlineData("Authentication:AccessTokenMinutes", "0")]
+    [InlineData("Authentication:AccessTokenMinutes", "61")]
+    public void AuthenticationRejectsInvalidJwtSettings(string key, string value)
+    {
+        const string signingKey = "0123456789abcdef0123456789abcdef";
+        using var provider = Create(new()
+        {
+            ["Database:Password"] = "private-password",
+            ["Authentication:Enabled"] = "true",
+            ["Authentication:Issuer"] = "https://api.tempodesk.local",
+            ["Authentication:Audience"] = "tempodesk-api",
+            ["Authentication:SigningKey"] = signingKey,
+            ["Authentication:AccessTokenMinutes"] = "15",
+            [key] = value
+        });
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value);
+
+        Assert.DoesNotContain(signingKey, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AuthenticationAcceptsValidJwtSettings()
+    {
+        const string signingKey = "0123456789abcdef0123456789abcdef";
+        using var provider = Create(new()
+        {
+            ["Database:Password"] = "private-password",
+            ["Authentication:Enabled"] = "true",
+            ["Authentication:Issuer"] = "https://api.tempodesk.local",
+            ["Authentication:Audience"] = "tempodesk-api",
+            ["Authentication:SigningKey"] = signingKey,
+            ["Authentication:AccessTokenMinutes"] = "15"
+        });
+
+        var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+
+        Assert.Equal("https://api.tempodesk.local", options.Issuer);
+        Assert.Equal("tempodesk-api", options.Audience);
+        Assert.Equal(signingKey, options.SigningKey);
+        Assert.Equal(15, options.AccessTokenMinutes);
+    }
+
     private static ServiceProvider Create(Dictionary<string, string?> values) => new ServiceCollection()
         .AddFoundationConfiguration(new ConfigurationBuilder().AddInMemoryCollection(values).Build()).BuildServiceProvider();
 

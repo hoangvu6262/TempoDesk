@@ -2,11 +2,6 @@ using System.Net;
 
 namespace TempoDesk.Application.Authentication;
 
-public sealed record EmailContent(
-    string Subject,
-    string TextBody,
-    string HtmlBody);
-
 public static class AuthenticationEmailTemplates
 {
     public static EmailContent Verification(

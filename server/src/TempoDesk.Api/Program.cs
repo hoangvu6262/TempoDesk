@@ -34,6 +34,8 @@ app.UseMiddleware<RequestBoundaryMiddleware>();
 app.UseRouting();
 var cors = app.Services.GetRequiredService<IOptions<CorsOptions>>().Value;
 app.UseCors(policy => policy.WithOrigins(cors.AllowedOrigins).AllowAnyHeader().AllowAnyMethod());
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapGet("/health/live", () => Results.Json(new { status = "Healthy", elapsedMs = 0d }));
 app.MapGet("/health/ready", async (DatabaseReadiness database, CancellationToken cancellationToken) =>
 {
