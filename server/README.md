@@ -19,22 +19,20 @@ TempoDesk.Worker ------------------> Application + Infrastructure + DocumentProc
 
 ## Shared build settings
 
-`Directory.Build.props` applies to all six production projects, four test projects
-and the database migration tool. It enables C# 14, nullable reference types,
+`Directory.Build.props` applies to all six production projects and the database
+migration tool. It enables C# 14, nullable reference types,
 implicit usings, .NET 10 recommended analyzers, deterministic builds and warnings
 as errors. Root `global.json` selects a stable .NET 10 SDK.
 
-Build and test from the repository root:
+Build from the repository root:
 
 ```bash
 dotnet build server/TempoDesk.sln
-dotnet test server/TempoDesk.sln --no-build
 dotnet sln server/TempoDesk.sln list
 ```
 
 Build and restore output goes to `artifacts/bin/<project>/<configuration>` and
 `artifacts/obj/<project>`. Do not commit these directories or local configuration.
-The repository conventions test verifies project counts and dependency direction.
 
 ## Database-first persistence
 
@@ -263,27 +261,6 @@ server/
 │       │   ├── BackgroundJobDispatcher.cs
 │       │   └── BackgroundJobProcessor.cs
 │       └── Program.cs
-│
-└── tests/
-    ├── TempoDesk.Domain.Tests/
-    │   ├── Tasks/
-    │   ├── Scheduling/
-    │   └── TimeTracking/
-    ├── TempoDesk.Application.Tests/
-    │   ├── Workspaces/
-    │   ├── Tasks/
-    │   ├── Scheduling/
-    │   ├── TimeTracking/
-    │   └── Jira/
-    ├── TempoDesk.IntegrationTests/
-    │   ├── Persistence/
-    │   ├── Jobs/
-    │   └── Jira/
-    └── TempoDesk.Api.Tests/
-        ├── Auth/
-        ├── Workspaces/
-        ├── Tasks/
-        └── Authorization/
 ```
 
 ## Placement rules
