@@ -153,6 +153,102 @@ public sealed class RefreshTokenIntegrationTests
             """));
     }
 
+    [Fact]
+    public async Task SessionListAndSingleRevokeEnforceOwnershipAndIdempotency()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var owner = await environment.LoginWithUserAsync(
+            "owner",
+            new SessionMetadata("First Agent", IPAddress.Parse("203.0.113.1")));
+        environment.Clock.Advance(TimeSpan.FromMinutes(1));
+        await environment.LoginExistingAsync(
+            "owner@example.com",
+            new SessionMetadata("Second Agent", IPAddress.Parse("203.0.113.2")));
+        var other = await environment.LoginWithUserAsync("other");
+
+        await using var scope = environment.Provider.CreateAsyncScope();
+        var sessions = scope.ServiceProvider
+            .GetRequiredService<IAuthenticationSessionService>();
+        var listed = await sessions.ListAsync(owner.UserId);
+
+        Assert.Equal(2, listed.Count);
+        Assert.Equal("Second Agent", listed[0].UserAgent);
+        Assert.All(listed, session =>
+            Assert.Equal(AuthenticationSessionStatus.Active, session.Status));
+        Assert.DoesNotContain(listed, session => session.UserAgent is null);
+
+        var revoked = listed.Single(session =>
+            session.UserAgent == "First Agent");
+        Assert.True(await sessions.RevokeAsync(owner.UserId, revoked.Id));
+        var revokedAt = await environment.GetRevokedAtAsync(revoked.Id);
+        environment.Clock.Advance(TimeSpan.FromMinutes(1));
+        Assert.True(await sessions.RevokeAsync(owner.UserId, revoked.Id));
+        Assert.Equal(revokedAt, await environment.GetRevokedAtAsync(revoked.Id));
+        Assert.False(await sessions.RevokeAsync(other.UserId, revoked.Id));
+
+        listed = await sessions.ListAsync(owner.UserId);
+        Assert.Equal(AuthenticationSessionStatus.Revoked,
+            listed.Single(session => session.Id == revoked.Id).Status);
+        Assert.Equal(AuthenticationSessionStatus.Active,
+            listed.Single(session => session.Id != revoked.Id).Status);
+    }
+
+    [Fact]
+    public async Task SessionListReportsExpiredFamily()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var login = await environment.LoginWithUserAsync("expired-session");
+        environment.Clock.Advance(TimeSpan.FromDays(31));
+
+        await using var scope = environment.Provider.CreateAsyncScope();
+        var sessions = scope.ServiceProvider
+            .GetRequiredService<IAuthenticationSessionService>();
+        var session = Assert.Single(await sessions.ListAsync(login.UserId));
+
+        Assert.Equal(AuthenticationSessionStatus.Expired, session.Status);
+    }
+
+    [Fact]
+    public async Task SessionLogoutAndRevokeAllAreScopedAndAudited()
+    {
+        await using var environment = await TestEnvironment.CreateAsync();
+        var owner = await environment.LoginWithUserAsync("logout-owner");
+        var second = await environment.LoginExistingAsync(
+            "logout-owner@example.com");
+        var other = await environment.LoginWithUserAsync("logout-other");
+
+        await using var scope = environment.Provider.CreateAsyncScope();
+        var sessions = scope.ServiceProvider
+            .GetRequiredService<IAuthenticationSessionService>();
+        await sessions.LogoutAsync(owner.Login.RefreshToken!);
+        await sessions.LogoutAsync(owner.Login.RefreshToken!);
+        await sessions.LogoutAsync("unknown-token");
+
+        var ownerSessions = await sessions.ListAsync(owner.UserId);
+        Assert.Equal(2, ownerSessions.Count);
+        Assert.Single(ownerSessions, session =>
+            session.Status == AuthenticationSessionStatus.Active);
+        Assert.Single(ownerSessions, session =>
+            session.Status == AuthenticationSessionStatus.Revoked);
+
+        await sessions.RevokeAllAsync(owner.UserId);
+        await sessions.RevokeAllAsync(owner.UserId);
+        Assert.All(await sessions.ListAsync(owner.UserId), session =>
+            Assert.Equal(AuthenticationSessionStatus.Revoked, session.Status));
+        Assert.Equal(AuthenticationSessionStatus.Active,
+            Assert.Single(await sessions.ListAsync(other.UserId)).Status);
+        Assert.Null(await environment.RefreshAsync(second.RefreshToken!));
+
+        Assert.Equal(3L, await environment.CountAsync("""
+            SELECT count(*) FROM public.security_audit_logs
+            WHERE event_type = 'auth.logout'
+            """));
+        Assert.Equal(2L, await environment.CountAsync("""
+            SELECT count(*) FROM public.security_audit_logs
+            WHERE event_type = 'session.revoke_all' AND succeeded
+            """));
+    }
+
     private sealed class TestEnvironment : IAsyncDisposable
     {
         private TestEnvironment(
@@ -215,6 +311,14 @@ public sealed class RefreshTokenIntegrationTests
             string name = "person",
             SessionMetadata? metadata = null)
         {
+            var result = await LoginWithUserAsync(name, metadata);
+            return result.Login;
+        }
+
+        public async Task<(Guid UserId, LoginResult Login)> LoginWithUserAsync(
+            string name,
+            SessionMetadata? metadata = null)
+        {
             await using var scope = Provider.CreateAsyncScope();
             var users = scope.ServiceProvider
                 .GetRequiredService<UserManager<ApplicationUser>>();
@@ -225,9 +329,20 @@ public sealed class RefreshTokenIntegrationTests
                 EmailConfirmed = true
             };
             Assert.True((await users.CreateAsync(user, Password)).Succeeded);
-            return await scope.ServiceProvider
+            var login = await scope.ServiceProvider
                 .GetRequiredService<IAccountLoginService>()
                 .LoginAsync(user.Email, Password, metadata);
+            return (user.Id, login);
+        }
+
+        public async Task<LoginResult> LoginExistingAsync(
+            string email,
+            SessionMetadata? metadata = null)
+        {
+            await using var scope = Provider.CreateAsyncScope();
+            return await scope.ServiceProvider
+                .GetRequiredService<IAccountLoginService>()
+                .LoginAsync(email, Password, metadata);
         }
 
         public async Task<AuthenticationTokenResult?> RefreshAsync(
@@ -254,6 +369,28 @@ public sealed class RefreshTokenIntegrationTests
             await connection.OpenAsync();
             await using var command = new NpgsqlCommand(sql, connection);
             return (long)(await command.ExecuteScalarAsync())!;
+        }
+
+        public async Task<DateTimeOffset> GetRevokedAtAsync(Guid familyId)
+        {
+            await using var connection = new NpgsqlConnection(
+                Database.GetConnectionString());
+            await connection.OpenAsync();
+            await using var command = new NpgsqlCommand("""
+                SELECT min(revoked_at)
+                FROM public.refresh_tokens
+                WHERE family_id = @family_id
+                """, connection);
+            command.Parameters.AddWithValue("family_id", familyId);
+            var value = await command.ExecuteScalarAsync();
+            return value switch
+            {
+                DateTimeOffset timestamp => timestamp,
+                DateTime timestamp => new DateTimeOffset(
+                    DateTime.SpecifyKind(timestamp, DateTimeKind.Utc)),
+                _ => throw new InvalidOperationException(
+                    "Expected a session revocation timestamp.")
+            };
         }
 
         public async ValueTask DisposeAsync()

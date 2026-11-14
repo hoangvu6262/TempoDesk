@@ -18,4 +18,25 @@ public interface IRefreshTokenRepository
     Task RecordRejectedAsync(
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
+
+    Task LogoutAsync(
+        string? tokenHash,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AuthenticationSession>> ListSessionsAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> RevokeSessionAsync(
+        Guid userId,
+        Guid familyId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
+    Task RevokeAllSessionsAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
 }
