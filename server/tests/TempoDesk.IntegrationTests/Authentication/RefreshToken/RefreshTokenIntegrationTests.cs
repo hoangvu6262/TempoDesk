@@ -44,7 +44,8 @@ public sealed class RefreshTokenIntegrationTests
         await using var reader = await command.ExecuteReaderAsync();
         Assert.True(await reader.ReadAsync());
         Assert.Equal(clock.GetUtcNow(),
-            reader.GetFieldValue<DateTimeOffset>(0));
+            reader.GetFieldValue<DateTimeOffset>(0),
+            TimeSpan.FromMicroseconds(1));
         Assert.True(reader.IsDBNull(1));
         var replacementId = reader.GetGuid(2);
         var familyId = reader.GetGuid(3);

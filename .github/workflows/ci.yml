@@ -2,7 +2,16 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - development
   pull_request:
+    branches:
+      - main
+      - development
+
+env:
+  JWT_SIGNING_KEY: ci-only-signing-key-not-for-production
 
 permissions:
   contents: read

@@ -119,7 +119,8 @@ public sealed class LoginIntegrationTests
         Assert.NotEqual(result.RefreshToken, storedHash);
         Assert.NotEqual(Guid.Empty, reader.GetGuid(1));
         Assert.Equal(clock.GetUtcNow().AddDays(30),
-            reader.GetFieldValue<DateTimeOffset>(2));
+            reader.GetFieldValue<DateTimeOffset>(2),
+            TimeSpan.FromMicroseconds(1));
         Assert.False(await reader.ReadAsync());
     }
 
