@@ -21,7 +21,8 @@ Add only:
 - `@base-ui/react` for interactive primitives whose keyboard, focus, or form behavior would otherwise be reimplemented;
 - `@tabler/icons-react` for interface icons;
 - `@fontsource/inter` so Inter is bundled rather than loaded from an external font service;
-- `@testing-library/user-event` for interaction tests.
+- `@testing-library/user-event` for interaction tests;
+- `sass` as the build-time stylesheet compiler.
 
 Native HTML remains the first choice for text, headings, buttons, inputs, alerts, and spinners. Checkbox is the only initial component built on Base UI.
 
@@ -45,16 +46,34 @@ client/web/src/ui/
   theme/
     ThemeProvider.tsx
     theme.ts
-  tokens.css
+  tokens.scss
   index.ts
 client/web/src/app/UiKitPage.tsx
 ```
 
-Each reusable component owns its `.tsx`, `.module.css`, and behavior test. Do not add one-file barrels inside every folder; `ui/index.ts` is the single public export surface.
+Each reusable component owns its `.tsx`, global `.scss`, and behavior test. Component files import their stylesheet directly so Vite includes only styles reached by the application. Do not add one-file barrels inside every folder; `ui/index.ts` is the single public export surface.
+
+The existing application stylesheet becomes `index.scss`. Shared resets and page-shell rules remain there; reusable component styles stay beside their components.
+
+## SCSS and BEM
+
+All component styles are global SCSS using BEM. Every block is prefixed with `td-` to avoid collisions with application and third-party styles:
+
+```scss
+.td-button {
+  &__icon { /* element */ }
+  &--primary { /* visual variant */ }
+  &--loading { /* component-owned state */ }
+}
+```
+
+Use one BEM block per reusable component. Elements use `__`; visual variants and component-owned states use `--`. Native interaction states continue to use semantic selectors such as `:hover`, `:focus-visible`, and `:disabled` rather than duplicate classes.
+
+Nesting stays beneath the owning block and should not exceed the level needed to express an element or modifier. A component must not reach into another component's BEM elements. JSX builds class names explicitly from the base block and applicable modifiers; no class-name dependency is added for this ticket.
 
 ## Design tokens and visual language
 
-Tokens are semantic CSS custom properties rather than a generated TypeScript token system. The root token file defines:
+Tokens are semantic CSS custom properties authored in SCSS rather than a generated TypeScript token system. SCSS organizes the theme declarations, while CSS custom properties provide runtime light/dark switching. The root token file defines:
 
 - neutral backgrounds, surfaces, borders, and text roles;
 - TempoDesk teal accent roles and danger, warning, success, and information roles;

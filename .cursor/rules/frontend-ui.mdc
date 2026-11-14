@@ -1,16 +1,18 @@
 ---
 description: TempoDesk frontend UI, component, styling, and state conventions
-globs: client/web/src/**/*.{ts,tsx,css}
+globs: client/web/src/**/*.{ts,tsx,scss}
 alwaysApply: false
 ---
 
 # Frontend UI Conventions
 
 - Use functional React components and TypeScript. Export reusable UI components by name and suffix prop types with `Props`.
-- Keep each reusable component with its CSS Module and behavior tests. Split files only when it makes the component easier to read.
+- Keep each reusable component with its global SCSS file and behavior tests. Split files only when it makes the component easier to read.
 - Build only the variants required by current callers. Reuse existing components before adding wrappers or abstractions.
 - Use semantic design tokens for color, typography, spacing, radius, shadow, and motion. Do not add arbitrary visual values inside component styles.
-- Use CSS Modules for component styles and `data-*` attributes for finite visual variants and states.
+- Name global SCSS classes with BEM and the `td-` block prefix: `.td-button`, `.td-button__icon`, `.td-button--primary`.
+- Use BEM modifiers for visual variants and component-owned states. Use native pseudo-classes for hover, focus-visible, and disabled behavior.
+- Keep SCSS nesting shallow and scoped beneath one component block. Do not style another component's internal elements.
 - Use Base UI only when its interaction and accessibility behavior saves real code. Use native HTML for simple elements.
 - Use Tabler Icons for interface icons. Icon-only controls must have an accessible name.
 - Keep state as close as possible to where it is used. Do not add a global state library without cross-feature shared state that React cannot reasonably own.
