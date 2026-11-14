@@ -27,7 +27,7 @@ public sealed class AuthenticationOptions
 
 public sealed class CorsOptions
 {
-    public string[] AllowedOrigins { get; set; } = ["http://localhost:5173"];
+    public string[] AllowedOrigins { get; set; } = ["http://localhost:3000"];
 }
 
 public sealed class JiraOptions

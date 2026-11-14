@@ -77,7 +77,7 @@ should become healthy.
 
 Default local addresses:
 
-- Web: http://localhost:5173 — displays the API readiness state.
+- Web: http://localhost:3000 — displays the API readiness state.
 - API liveness: http://localhost:5023/health/live.
 - API database readiness: http://localhost:5023/health/ready.
 - PostgreSQL/DBeaver: `localhost:5432`, database `tempodesk`.
@@ -143,7 +143,7 @@ API and Worker validate typed options before starting. Environment variables use
 double underscores, for example `Database__Password`, `Database__Port` and
 `BackgroundJobs__HeartbeatIntervalSeconds`. Passwords are required, ports must be
 valid and timeouts must be within configured bounds. CORS origins default to
-`http://localhost:5173`.
+`http://localhost:3000`.
 
 Authentication, Jira, email and file-storage integrations are disabled by default.
 Their options are placeholders for later sprints; enabling a flag does not implement
