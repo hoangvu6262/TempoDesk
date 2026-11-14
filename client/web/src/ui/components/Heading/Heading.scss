@@ -1,0 +1,17 @@
+.td-heading {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+
+  &--1 {
+    font-size: var(--font-size-heading-1);
+  }
+  &--2 {
+    font-size: var(--font-size-heading-2);
+  }
+  &--3 {
+    font-size: var(--font-size-heading-3);
+  }
+}

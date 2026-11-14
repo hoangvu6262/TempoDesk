@@ -1,0 +1,23 @@
+.td-text {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-body);
+
+  &--body {
+    font-size: var(--font-size-body);
+  }
+  &--label {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
+  }
+  &--caption {
+    font-size: var(--font-size-caption);
+  }
+  &--secondary {
+    color: var(--color-text-muted);
+  }
+  &--danger {
+    color: var(--color-danger);
+  }
+}

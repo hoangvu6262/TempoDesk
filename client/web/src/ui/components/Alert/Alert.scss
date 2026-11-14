@@ -1,0 +1,33 @@
+.td-alert {
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid currentcolor;
+  border-radius: var(--radius-medium);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-sans);
+
+  &--info {
+    color: var(--color-info);
+    background: var(--color-info-subtle);
+  }
+  &--success {
+    color: var(--color-success);
+    background: var(--color-success-subtle);
+  }
+  &--warning {
+    color: var(--color-warning);
+    background: var(--color-warning-subtle);
+  }
+  &--error {
+    color: var(--color-danger);
+    background: var(--color-danger-subtle);
+  }
+  &__title {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+  }
+  &__content {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+  }
+}
