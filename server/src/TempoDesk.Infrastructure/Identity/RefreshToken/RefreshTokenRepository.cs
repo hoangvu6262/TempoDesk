@@ -210,8 +210,9 @@ internal sealed class RefreshTokenRepository(
         DateTimeOffset now,
         CancellationToken cancellationToken = default)
     {
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken);
+        var transaction = context.Database.CurrentTransaction is null
+            ? await context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
         await context.RefreshTokens
             .Where(token => token.UserId == userId &&
                 token.RevokedAt == null)
@@ -220,7 +221,11 @@ internal sealed class RefreshTokenRepository(
                 cancellationToken);
         AddAudit("session.revoke_all", true, userId, now);
         await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            await transaction.DisposeAsync();
+        }
     }
 
     private async Task<RefreshTokenRotation> RejectAsync(

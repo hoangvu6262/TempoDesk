@@ -107,6 +107,8 @@ public static class IdentityConfiguration
             AuthenticationTokenService>();
         services.AddScoped<IAuthenticationSessionService,
             AuthenticationSessionService>();
+        services.AddScoped<IAccountPasswordResetService,
+            AccountPasswordResetService>();
 
         return services;
     }
