@@ -20,6 +20,7 @@ public static class IdentityConfiguration
     {
         services.AddDataProtection();
         services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<SecurityAuditContext>();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer();
         services.AddAuthorization();
@@ -96,6 +97,8 @@ public static class IdentityConfiguration
 
         services.TryAddScoped<IEmailVerificationSender,
             SmtpEmailVerificationSender>();
+        services.TryAddScoped<IPasswordResetEmailSender,
+            SmtpPasswordResetEmailSender>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
         services.AddScoped<IAccountLoginService, AccountLoginService>();
@@ -105,6 +108,12 @@ public static class IdentityConfiguration
             AuthenticationTokenService>();
         services.AddScoped<IAuthenticationSessionService,
             AuthenticationSessionService>();
+        services.AddScoped<IAccountPasswordResetService,
+            AccountPasswordResetService>();
+        services.AddSingleton<IAuthenticationRateLimiter,
+            AuthenticationRateLimiter>();
+        services.AddScoped<IAuthenticationAuditService,
+            AuthenticationAuditService>();
 
         return services;
     }

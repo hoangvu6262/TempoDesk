@@ -6,7 +6,9 @@ namespace TempoDesk.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 public sealed class RegistrationController(
-    IAccountRegistrationService registration) : ControllerBase
+    IAccountRegistrationService registration,
+    IAuthenticationRateLimiter limiter,
+    IAuthenticationAuditService audit) : ControllerBase
 {
     private static readonly object GenericAcceptedResponse = new
     {
@@ -18,6 +20,12 @@ public sealed class RegistrationController(
         RegisterRequestDto request,
         CancellationToken cancellationToken)
     {
+        var limited = await this.EnforceRateLimitAsync(
+            limiter, audit, AuthenticationRateLimitPolicy.Register,
+            null, cancellationToken);
+        if (limited is not null)
+            return limited;
+
         var result = await registration.RegisterAsync(
             request.Email, request.Password, cancellationToken);
         if (!result.Succeeded)

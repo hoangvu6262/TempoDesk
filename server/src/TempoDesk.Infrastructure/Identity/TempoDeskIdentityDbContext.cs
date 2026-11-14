@@ -1,17 +1,22 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using TempoDesk.Application.Authentication;
 
 namespace TempoDesk.Infrastructure.Identity;
 
 public sealed class TempoDeskIdentityDbContext(
-    DbContextOptions<TempoDeskIdentityDbContext> options)
+    DbContextOptions<TempoDeskIdentityDbContext> options,
+    SecurityAuditContext? auditContext = null)
     : IdentityUserContext<ApplicationUser, Guid>(options)
 {
     public DbSet<EmailVerificationToken> EmailVerificationTokens =>
         Set<EmailVerificationToken>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<PasswordResetToken> PasswordResetTokens =>
+        Set<PasswordResetToken>();
 
     public DbSet<SecurityAuditLog> SecurityAuditLogs =>
         Set<SecurityAuditLog>();
@@ -25,8 +30,38 @@ public sealed class TempoDeskIdentityDbContext(
         ConfigureExternalLogins(builder);
         ConfigureUserTokens(builder);
         ConfigureRefreshTokens(builder);
+        ConfigurePasswordResetTokens(builder);
         ConfigureEmailVerificationTokens(builder);
         ConfigureSecurityAuditLogs(builder);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        EnrichAudits();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        EnrichAudits();
+        return base.SaveChangesAsync(
+            acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void EnrichAudits()
+    {
+        if (auditContext is null)
+            return;
+
+        foreach (var entry in ChangeTracker.Entries<SecurityAuditLog>()
+            .Where(entry => entry.State == EntityState.Added))
+        {
+            entry.Entity.IpAddress ??= auditContext.IpAddress;
+            entry.Entity.UserAgent ??= auditContext.UserAgent;
+            entry.Entity.TraceId ??= auditContext.TraceId;
+        }
     }
 
     private static void ConfigureUsers(ModelBuilder builder)
@@ -247,6 +282,17 @@ public sealed class TempoDeskIdentityDbContext(
                 .HasColumnName("event_type")
                 .HasMaxLength(100);
             entity.Property(audit => audit.Succeeded).HasColumnName("succeeded");
+            entity.Property(audit => audit.IpAddress)
+                .HasColumnName("ip_address")
+                .HasColumnType("inet");
+            entity.Property(audit => audit.UserAgent)
+                .HasColumnName("user_agent");
+            entity.Property(audit => audit.TraceId)
+                .HasColumnName("trace_id")
+                .HasMaxLength(100);
+            entity.Property(audit => audit.Metadata)
+                .HasColumnName("metadata")
+                .HasColumnType("jsonb");
             entity.Property(audit => audit.OccurredAt).HasColumnName("occurred_at");
             entity.HasIndex(audit => new { audit.UserId, audit.OccurredAt })
                 .HasDatabaseName("ix_security_audit_logs_user_occurred_at")
@@ -254,6 +300,28 @@ public sealed class TempoDeskIdentityDbContext(
             entity.HasIndex(audit => new { audit.EventType, audit.OccurredAt })
                 .HasDatabaseName("ix_security_audit_logs_event_occurred_at")
                 .IsDescending(false, true);
+        });
+    }
+
+    private static void ConfigurePasswordResetTokens(ModelBuilder builder)
+    {
+        builder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("password_reset_tokens", "public");
+            entity.HasKey(token => token.Id);
+            entity.Property(token => token.Id).HasColumnName("id");
+            entity.Property(token => token.UserId).HasColumnName("user_id");
+            entity.Property(token => token.TokenHash).HasColumnName("token_hash");
+            entity.Property(token => token.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(token => token.UsedAt).HasColumnName("used_at");
+            entity.Property(token => token.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(token => token.TokenHash)
+                .HasDatabaseName("ux_password_reset_tokens_token_hash")
+                .IsUnique();
+            entity.HasIndex(token => token.UserId)
+                .HasDatabaseName("ix_password_reset_tokens_user_id");
+            entity.HasIndex(token => token.ExpiresAt)
+                .HasDatabaseName("ix_password_reset_tokens_expires_at");
         });
     }
 }

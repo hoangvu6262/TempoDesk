@@ -3,12 +3,15 @@ using System.Data;
 using System.Diagnostics;
 using System.Security;
 using Microsoft.AspNetCore.Mvc;
+using TempoDesk.Application.Authentication;
 
 namespace TempoDesk.Api;
 
 public sealed class RequestBoundaryMiddleware(RequestDelegate next, ILogger<RequestBoundaryMiddleware> logger)
 {
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(
+        HttpContext context,
+        SecurityAuditContext auditContext)
     {
         var timer = Stopwatch.StartNew();
         using var activity = new Activity("TempoDesk.Request");
@@ -16,9 +19,17 @@ public sealed class RequestBoundaryMiddleware(RequestDelegate next, ILogger<Requ
             activity.SetParentId(parent.TraceId, parent.SpanId, parent.TraceFlags);
         activity.Start();
         var traceId = activity.TraceId.ToString();
+        var userAgent = context.Request.Headers.UserAgent.ToString();
+        auditContext.IpAddress = context.Connection.RemoteIpAddress;
+        auditContext.UserAgent = string.IsNullOrWhiteSpace(userAgent)
+            ? null
+            : userAgent[..Math.Min(userAgent.Length, 1024)];
+        auditContext.TraceId = traceId;
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
-            ["UserId"] = null, ["WorkspaceId"] = null, ["JobId"] = null
+            ["UserId"] = null,
+            ["WorkspaceId"] = null,
+            ["JobId"] = null
         });
         try
         {
@@ -53,8 +64,12 @@ public sealed class RequestBoundaryMiddleware(RequestDelegate next, ILogger<Requ
         var status = context.Response.StatusCode;
         var title = status switch
         {
-            400 => "Bad Request", 401 => "Unauthorized", 403 => "Forbidden", 404 => "Not Found",
-            409 => "Conflict", _ => "Internal Server Error"
+            400 => "Bad Request",
+            401 => "Unauthorized",
+            403 => "Forbidden",
+            404 => "Not Found",
+            409 => "Conflict",
+            _ => "Internal Server Error"
         };
         ProblemDetails problem = status == 400
             ? new ValidationProblemDetails(new Dictionary<string, string[]> { ["request"] = ["The request is invalid."] })

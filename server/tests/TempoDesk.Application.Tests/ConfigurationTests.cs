@@ -107,6 +107,31 @@ public sealed class ConfigurationTests
         Assert.Equal(30, options.RefreshTokenDays);
     }
 
+    [Fact]
+    public void SecurityUsesApprovedDefaults()
+    {
+        using var provider = Create(new());
+        var options = provider.GetRequiredService<IOptions<SecurityOptions>>().Value;
+
+        Assert.Equal(5, options.Register.PermitLimit);
+        Assert.Equal(900, options.Register.WindowSeconds);
+        Assert.Equal(5, options.LoginAccount.PermitLimit);
+        Assert.Equal(30, options.Refresh.PermitLimit);
+        Assert.Equal(90, options.AuditRetentionDays);
+    }
+
+    [Theory]
+    [InlineData("Security:Register:PermitLimit", "0")]
+    [InlineData("Security:Refresh:WindowSeconds", "0")]
+    [InlineData("Security:AuditRetentionDays", "0")]
+    [InlineData("Security:AuditRetentionDays", "3651")]
+    public void SecurityRejectsInvalidValues(string key, string value)
+    {
+        using var provider = Create(new() { [key] = value });
+        Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<SecurityOptions>>().Value);
+    }
+
     private static ServiceProvider Create(Dictionary<string, string?> values) => new ServiceCollection()
         .AddFoundationConfiguration(new ConfigurationBuilder().AddInMemoryCollection(values).Build()).BuildServiceProvider();
 
@@ -117,7 +142,9 @@ public sealed class ConfigurationTests
     {
         using var provider = Create(new()
         {
-            ["Email:Enabled"] = "true", ["Email:Host"] = "localhost", ["Email:From"] = address,
+            ["Email:Enabled"] = "true",
+            ["Email:Host"] = "localhost",
+            ["Email:From"] = address,
             ["Email:FrontendBaseUrl"] = "http://localhost:3000"
         });
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<EmailOptions>>().Value);
