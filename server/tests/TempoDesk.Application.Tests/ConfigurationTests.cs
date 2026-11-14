@@ -60,6 +60,8 @@ public sealed class ConfigurationTests
     [InlineData("Authentication:SigningKey", "short")]
     [InlineData("Authentication:AccessTokenMinutes", "0")]
     [InlineData("Authentication:AccessTokenMinutes", "61")]
+    [InlineData("Authentication:RefreshTokenDays", "0")]
+    [InlineData("Authentication:RefreshTokenDays", "91")]
     public void AuthenticationRejectsInvalidJwtSettings(string key, string value)
     {
         const string signingKey = "0123456789abcdef0123456789abcdef";
@@ -71,6 +73,7 @@ public sealed class ConfigurationTests
             ["Authentication:Audience"] = "tempodesk-api",
             ["Authentication:SigningKey"] = signingKey,
             ["Authentication:AccessTokenMinutes"] = "15",
+            ["Authentication:RefreshTokenDays"] = "30",
             [key] = value
         });
 
@@ -91,7 +94,8 @@ public sealed class ConfigurationTests
             ["Authentication:Issuer"] = "https://api.tempodesk.local",
             ["Authentication:Audience"] = "tempodesk-api",
             ["Authentication:SigningKey"] = signingKey,
-            ["Authentication:AccessTokenMinutes"] = "15"
+            ["Authentication:AccessTokenMinutes"] = "15",
+            ["Authentication:RefreshTokenDays"] = "30"
         });
 
         var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
@@ -100,6 +104,7 @@ public sealed class ConfigurationTests
         Assert.Equal("tempodesk-api", options.Audience);
         Assert.Equal(signingKey, options.SigningKey);
         Assert.Equal(15, options.AccessTokenMinutes);
+        Assert.Equal(30, options.RefreshTokenDays);
     }
 
     private static ServiceProvider Create(Dictionary<string, string?> values) => new ServiceCollection()

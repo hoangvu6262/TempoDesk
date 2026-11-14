@@ -22,6 +22,7 @@ public sealed class AuthenticationOptions
     public string Audience { get; set; } = "";
     public string SigningKey { get; set; } = "";
     public int AccessTokenMinutes { get; set; } = 15;
+    public int RefreshTokenDays { get; set; } = 30;
 }
 
 public sealed class CorsOptions
@@ -71,7 +72,8 @@ public static class FoundationConfiguration
         Bind<AuthenticationOptions>("Authentication", o => !o.Enabled ||
             (HttpUrl(o.Issuer) && !string.IsNullOrWhiteSpace(o.Audience) &&
              Encoding.UTF8.GetByteCount(o.SigningKey) >= 32 &&
-             o.AccessTokenMinutes is >= 1 and <= 60));
+             o.AccessTokenMinutes is >= 1 and <= 60 &&
+             o.RefreshTokenDays is >= 1 and <= 90));
         Bind<CorsOptions>("Cors", o => o.AllowedOrigins.Length > 0 && o.AllowedOrigins.All(HttpUrl));
         Bind<JiraOptions>("Jira", o => !o.Enabled || (HttpUrl(o.BaseUrl) && !string.IsNullOrWhiteSpace(o.Token) && o.TimeoutSeconds is >= 1 and <= 300));
         Bind<EmailOptions>("Email", o => !o.Enabled ||

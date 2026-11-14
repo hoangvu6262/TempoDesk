@@ -99,6 +99,10 @@ public static class IdentityConfiguration
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
         services.AddScoped<IAccountLoginService, AccountLoginService>();
+        services.AddScoped<AccessTokenIssuer>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IAuthenticationTokenService,
+            AuthenticationTokenService>();
 
         return services;
     }

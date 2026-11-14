@@ -17,7 +17,15 @@ public sealed class LoginController(IAccountLoginService login) : ControllerBase
         if (!result.Succeeded)
             return Unauthorized();
 
-        return Ok(new LoginResponseDto(
+        if (result.RefreshToken is not null &&
+            result.RefreshTokenExpiresAt is not null)
+            RefreshTokenCookie.Write(
+                Response,
+                Request.IsHttps,
+                result.RefreshToken,
+                result.RefreshTokenExpiresAt.Value);
+
+        return Ok(new AccessTokenResponseDto(
             result.AccessToken!, "Bearer", result.ExpiresIn));
     }
 }

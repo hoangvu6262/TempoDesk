@@ -11,6 +11,8 @@ public sealed class TempoDeskIdentityDbContext(
     public DbSet<EmailVerificationToken> EmailVerificationTokens =>
         Set<EmailVerificationToken>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     public DbSet<SecurityAuditLog> SecurityAuditLogs =>
         Set<SecurityAuditLog>();
 
@@ -22,6 +24,7 @@ public sealed class TempoDeskIdentityDbContext(
         ConfigureUserClaims(builder);
         ConfigureExternalLogins(builder);
         ConfigureUserTokens(builder);
+        ConfigureRefreshTokens(builder);
         ConfigureEmailVerificationTokens(builder);
         ConfigureSecurityAuditLogs(builder);
     }
@@ -191,6 +194,34 @@ public sealed class TempoDeskIdentityDbContext(
                 .HasDatabaseName("ix_email_verification_tokens_user_id");
             entity.HasIndex(token => token.ExpiresAt)
                 .HasDatabaseName("ix_email_verification_tokens_expires_at");
+        });
+    }
+
+    private static void ConfigureRefreshTokens(ModelBuilder builder)
+    {
+        builder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("refresh_tokens", "public");
+            entity.HasKey(token => token.Id);
+            entity.Property(token => token.Id).HasColumnName("id");
+            entity.Property(token => token.UserId).HasColumnName("user_id");
+            entity.Property(token => token.FamilyId).HasColumnName("family_id");
+            entity.Property(token => token.TokenHash).HasColumnName("token_hash");
+            entity.Property(token => token.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(token => token.UsedAt).HasColumnName("used_at");
+            entity.Property(token => token.RevokedAt).HasColumnName("revoked_at");
+            entity.Property(token => token.ReplacedByTokenId)
+                .HasColumnName("replaced_by_token_id");
+            entity.Property(token => token.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(token => token.TokenHash)
+                .HasDatabaseName("ux_refresh_tokens_token_hash")
+                .IsUnique();
+            entity.HasIndex(token => token.UserId)
+                .HasDatabaseName("ix_refresh_tokens_user_id");
+            entity.HasIndex(token => token.FamilyId)
+                .HasDatabaseName("ix_refresh_tokens_family_id");
+            entity.HasIndex(token => token.ExpiresAt)
+                .HasDatabaseName("ix_refresh_tokens_expires_at");
         });
     }
 

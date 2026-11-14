@@ -1,10 +1,6 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using TempoDesk.Application.Authentication;
 using TempoDesk.Infrastructure.Configuration;
 
@@ -14,6 +10,7 @@ internal sealed class AccountLoginService(
     UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn,
     TempoDeskIdentityDbContext context,
+    IAuthenticationTokenService tokens,
     IOptions<AuthenticationOptions> configured,
     TimeProvider timeProvider) : IAccountLoginService
 {
@@ -32,32 +29,17 @@ internal sealed class AccountLoginService(
         if (!result.Succeeded)
             return await RejectAsync(user.Id, cancellationToken);
 
-        var now = timeProvider.GetUtcNow();
-        var expires = now.AddMinutes(settings.AccessTokenMinutes);
-        var token = new JwtSecurityToken(
-            issuer: settings.Issuer,
-            audience: settings.Audience,
-            claims:
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-                new Claim(JwtRegisteredClaimNames.Iat,
-                    EpochTime.GetIntDate(now.UtcDateTime).ToString(
-                        CultureInfo.InvariantCulture),
-                    ClaimValueTypes.Integer64)
-            ],
-            notBefore: now.UtcDateTime,
-            expires: expires.UtcDateTime,
-            signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(settings.SigningKey)),
-                SecurityAlgorithms.HmacSha256));
-
-        AddAudit(true, user.Id, now);
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var issued = await tokens.IssueAsync(user.Id, cancellationToken);
+        AddAudit(true, user.Id, timeProvider.GetUtcNow());
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new LoginResult(
-            new JwtSecurityTokenHandler().WriteToken(token),
-            checked(settings.AccessTokenMinutes * 60));
+            issued.AccessToken,
+            issued.ExpiresIn,
+            issued.RefreshToken,
+            issued.RefreshTokenExpiresAt);
     }
 
     private async Task<LoginResult> RejectAsync(

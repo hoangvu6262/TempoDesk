@@ -52,6 +52,10 @@ public sealed class LoginIntegrationTests
         Assert.True(result.Succeeded);
         Assert.Equal(900, result.ExpiresIn);
         Assert.NotNull(result.AccessToken);
+        Assert.NotNull(result.RefreshToken);
+        Assert.Equal(43, result.RefreshToken.Length);
+        Assert.Equal(clock.GetUtcNow().AddDays(30),
+            result.RefreshTokenExpiresAt);
         var handler = new JwtSecurityTokenHandler();
         var token = handler.ReadJwtToken(result.AccessToken);
         Assert.Equal("https://issuer.example", token.Issuer);
@@ -97,6 +101,27 @@ public sealed class LoginIntegrationTests
             }, out _);
         Assert.Equal(user.Id.ToString(), principal.FindFirstValue(
             ClaimTypes.NameIdentifier));
+
+        await using var connection = new NpgsqlConnection(
+            database.GetConnectionString());
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            SELECT token_hash, family_id, expires_at
+            FROM public.refresh_tokens
+            WHERE user_id = @user_id
+            """, connection);
+        command.Parameters.AddWithValue("user_id", user.Id);
+        await using var reader = await command.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        var storedHash = reader.GetString(0);
+        Assert.Equal(64, storedHash.Length);
+        Assert.Matches("^[0-9a-f]{64}$", storedHash);
+        Assert.NotEqual(result.RefreshToken, storedHash);
+        Assert.NotEqual(Guid.Empty, reader.GetGuid(1));
+        Assert.Equal(clock.GetUtcNow().AddDays(30),
+            reader.GetFieldValue<DateTimeOffset>(2),
+            TimeSpan.FromMicroseconds(1));
+        Assert.False(await reader.ReadAsync());
     }
 
     [Fact]
@@ -203,7 +228,8 @@ public sealed class LoginIntegrationTests
                 Issuer = "https://issuer.example",
                 Audience = "tempodesk-api",
                 SigningKey = SigningKey,
-                AccessTokenMinutes = 15
+                AccessTokenMinutes = 15,
+                RefreshTokenDays = 30
             }));
         services.AddSingleton(timeProvider);
         services.AddTempoDeskIdentity();

@@ -14,10 +14,16 @@ public sealed class LoginApiTests
     {
         var service = new FakeLoginService
         {
-            Result = new LoginResult("header.payload.signature", 900)
+            Result = new LoginResult(
+                "header.payload.signature",
+                900,
+                "raw-refresh-token",
+                new DateTimeOffset(2026, 12, 3, 10, 0, 0,
+                    TimeSpan.Zero))
         };
         await using var factory = CreateFactory(service);
         using var client = factory.CreateClient();
+        client.BaseAddress = new Uri("https://localhost");
 
         using var response = await client.PostAsJsonAsync("/api/auth/login",
             new
@@ -30,6 +36,16 @@ public sealed class LoginApiTests
         Assert.Equal(
             "{\"accessToken\":\"header.payload.signature\",\"tokenType\":\"Bearer\",\"expiresIn\":900}",
             await response.Content.ReadAsStringAsync());
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        Assert.Contains("tempodesk.refresh_token=raw-refresh-token", cookie);
+        Assert.Contains("path=/api/auth", cookie,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("httponly", cookie,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("secure", cookie,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("samesite=strict", cookie,
+            StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Person@example.com", service.Email);
     }
 
