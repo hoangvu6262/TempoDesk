@@ -127,6 +127,7 @@ dotnet run --project server/src/TempoDesk.Worker
 For the web development server, use another terminal:
 
 ```bash
+nvm use
 npm --prefix client/web ci
 npm --prefix client/web run dev
 ```

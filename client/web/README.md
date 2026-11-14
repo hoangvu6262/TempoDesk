@@ -1,8 +1,9 @@
 # TempoDesk Web
 
-Requires Node.js 22.12 or newer. The app uses React, strict TypeScript, Vite and React Router in declarative mode.
+Requires Node.js 22.12 or newer. The repository `.nvmrc` selects Node 22.22.0; run `nvm use` from anywhere inside the repository before installing dependencies or starting Vite. The app uses React, strict TypeScript, Vite and React Router in declarative mode.
 
 ```sh
+nvm use
 npm ci
 cp .env.example .env.local
 npm run dev
