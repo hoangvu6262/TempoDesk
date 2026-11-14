@@ -1,7 +1,7 @@
+import { THEME_STORAGE_KEY } from '../../constants/storage'
+
 export type ThemePreference = 'light' | 'dark' | 'system'
 export type ResolvedTheme = Exclude<ThemePreference, 'system'>
-
-export const THEME_STORAGE_KEY = 'tempodesk.theme'
 
 export function resolveTheme(
   preference: ThemePreference,

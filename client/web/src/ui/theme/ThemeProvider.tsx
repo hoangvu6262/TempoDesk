@@ -1,5 +1,6 @@
 import { type PropsWithChildren, useEffect, useMemo, useState } from 'react'
-import { readThemePreference, resolveTheme, THEME_STORAGE_KEY } from './theme'
+import { THEME_STORAGE_KEY } from '../../constants/storage'
+import { readThemePreference, resolveTheme } from './theme'
 import { ThemeContext, type ThemeContextValue } from './useTheme'
 
 export function ThemeProvider({ children }: PropsWithChildren) {
