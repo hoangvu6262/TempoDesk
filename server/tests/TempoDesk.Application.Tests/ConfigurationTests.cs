@@ -118,7 +118,7 @@ public sealed class ConfigurationTests
         using var provider = Create(new()
         {
             ["Email:Enabled"] = "true", ["Email:Host"] = "localhost", ["Email:From"] = address,
-            ["Email:FrontendBaseUrl"] = "http://localhost:5173"
+            ["Email:FrontendBaseUrl"] = "http://localhost:3000"
         });
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<EmailOptions>>().Value);
     }
@@ -140,7 +140,7 @@ public sealed class ConfigurationTests
     }
 
     [Theory]
-    [InlineData("http://localhost:5173")]
+    [InlineData("http://localhost:3000")]
     [InlineData("https://app.example/tempo")]
     [InlineData("https://app.example/tempo/")]
     public void EnabledEmailAcceptsValidFrontendBaseUrl(string frontendBaseUrl)

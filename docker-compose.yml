@@ -73,12 +73,12 @@ services:
       Authentication__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
       Authentication__AccessTokenMinutes: "15"
       Authentication__RefreshTokenDays: "30"
-      Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-5173}
+      Cors__AllowedOrigins__0: http://localhost:${WEB_PORT:-3000}
       Email__Enabled: "true"
       Email__Host: mailpit
       Email__Port: "1025"
       Email__From: no-reply@tempodesk.local
-      Email__FrontendBaseUrl: http://localhost:${WEB_PORT:-5173}
+      Email__FrontendBaseUrl: http://localhost:${WEB_PORT:-3000}
     ports:
       - "127.0.0.1:${API_PORT:-5023}:8080"
     depends_on:
@@ -139,7 +139,7 @@ services:
       platforms:
         - ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
     ports:
-      - "127.0.0.1:${WEB_PORT:-5173}:8080"
+      - "127.0.0.1:${WEB_PORT:-3000}:8080"
     depends_on:
       api:
         condition: service_healthy

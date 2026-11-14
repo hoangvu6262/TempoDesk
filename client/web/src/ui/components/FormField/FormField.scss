@@ -1,0 +1,33 @@
+.td-form-field {
+  display: grid;
+  gap: var(--space-2);
+
+  &__label {
+    color: var(--color-text);
+    font: var(--font-weight-medium)
+      var(--font-size-label)/var(--line-height-body) var(--font-family-sans);
+  }
+  &__description {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+  }
+  &__error,
+  &__required {
+    color: var(--color-danger);
+  }
+  &__error {
+    font-size: var(--font-size-caption);
+  }
+}
+
+.td-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

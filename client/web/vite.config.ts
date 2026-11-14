@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
+    port: 3000,
+    strictPort: true,
     proxy: {
       '/api': {
         target:
@@ -29,7 +31,13 @@ export default defineConfig(({ mode }) => ({
     coverage: {
       provider: 'v8',
       reportsDirectory: '../../artifacts/frontend/coverage',
-      include: ['src/lib/**', 'src/config/**', 'src/app/**', 'src/App.tsx'],
+      include: [
+        'src/lib/**',
+        'src/config/**',
+        'src/app/**',
+        'src/ui/**',
+        'src/App.tsx',
+      ],
     },
   },
 }))
