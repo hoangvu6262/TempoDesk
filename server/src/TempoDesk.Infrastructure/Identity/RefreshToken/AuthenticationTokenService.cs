@@ -14,6 +14,7 @@ internal sealed class AuthenticationTokenService(
 {
     public async Task<AuthenticationTokenResult> IssueAsync(
         Guid userId,
+        SessionMetadata metadata,
         CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
@@ -23,6 +24,7 @@ internal sealed class AuthenticationTokenService(
             userId,
             Guid.NewGuid(),
             token,
+            metadata,
             cancellationToken);
         var accessToken = accessTokens.Issue(userId);
         return new AuthenticationTokenResult(

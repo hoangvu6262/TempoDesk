@@ -10,6 +10,7 @@ internal sealed class RefreshTokenRepository(
         Guid userId,
         Guid familyId,
         NewRefreshToken token,
+        SessionMetadata metadata,
         CancellationToken cancellationToken = default)
     {
         context.RefreshTokens.Add(new RefreshToken
@@ -19,6 +20,8 @@ internal sealed class RefreshTokenRepository(
             FamilyId = familyId,
             TokenHash = token.TokenHash,
             ExpiresAt = token.ExpiresAt,
+            UserAgent = metadata.UserAgent,
+            IpAddress = metadata.IpAddress,
             CreatedAt = token.CreatedAt
         });
         await context.SaveChangesAsync(cancellationToken);
@@ -73,6 +76,9 @@ internal sealed class RefreshTokenRepository(
             FamilyId = token.FamilyId,
             TokenHash = replacement.TokenHash,
             ExpiresAt = replacement.ExpiresAt,
+            DeviceName = token.DeviceName,
+            UserAgent = token.UserAgent,
+            IpAddress = token.IpAddress,
             CreatedAt = replacement.CreatedAt
         });
         await context.SaveChangesAsync(cancellationToken);
@@ -91,6 +97,130 @@ internal sealed class RefreshTokenRepository(
     {
         AddAudit("token.refresh", false, null, now);
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task LogoutAsync(
+        string? tokenHash,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var token = tokenHash is null
+            ? null
+            : await context.RefreshTokens
+                .AsNoTracking()
+                .Where(candidate => candidate.TokenHash == tokenHash)
+                .Select(candidate => new
+                {
+                    candidate.UserId,
+                    candidate.FamilyId
+                })
+                .SingleOrDefaultAsync(cancellationToken);
+        var changed = token is null
+            ? 0
+            : await context.RefreshTokens
+                .Where(candidate => candidate.FamilyId == token.FamilyId &&
+                    candidate.RevokedAt == null)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(candidate => candidate.RevokedAt, now),
+                    cancellationToken);
+        AddAudit("auth.logout", changed > 0, token?.UserId, now);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AuthenticationSession>> ListSessionsAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await context.RefreshTokens
+            .AsNoTracking()
+            .Where(token => token.UserId == userId)
+            .Select(token => new
+            {
+                token.FamilyId,
+                token.UserAgent,
+                token.IpAddress,
+                token.CreatedAt,
+                token.UsedAt,
+                token.ExpiresAt,
+                token.RevokedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(row => row.FamilyId)
+            .Select(family =>
+            {
+                var createdAt = family.Min(row => row.CreatedAt);
+                var active = family.Any(row =>
+                    row.RevokedAt is null && row.ExpiresAt > now);
+                var allRevoked = family.All(row =>
+                    row.RevokedAt is not null);
+                return new AuthenticationSession(
+                    family.Key,
+                    family.Select(row => row.UserAgent)
+                        .FirstOrDefault(value => value is not null),
+                    family.Select(row => row.IpAddress?.ToString())
+                        .FirstOrDefault(value => value is not null),
+                    createdAt,
+                    family.Where(row => row.UsedAt is not null)
+                        .Select(row => row.UsedAt!.Value)
+                        .DefaultIfEmpty(createdAt)
+                        .Max(),
+                    family.Max(row => row.ExpiresAt),
+                    active
+                        ? AuthenticationSessionStatus.Active
+                        : allRevoked
+                            ? AuthenticationSessionStatus.Revoked
+                            : AuthenticationSessionStatus.Expired);
+            })
+            .OrderByDescending(session => session.LastUsedAt)
+            .ToArray();
+    }
+
+    public async Task<bool> RevokeSessionAsync(
+        Guid userId,
+        Guid familyId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var owned = await context.RefreshTokens
+            .AnyAsync(token => token.UserId == userId &&
+                token.FamilyId == familyId, cancellationToken);
+        if (owned)
+            await context.RefreshTokens
+                .Where(token => token.UserId == userId &&
+                    token.FamilyId == familyId && token.RevokedAt == null)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(token => token.RevokedAt, now),
+                    cancellationToken);
+        AddAudit("session.revoke", owned, userId, now);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return owned;
+    }
+
+    public async Task RevokeAllSessionsAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        await context.RefreshTokens
+            .Where(token => token.UserId == userId &&
+                token.RevokedAt == null)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(token => token.RevokedAt, now),
+                cancellationToken);
+        AddAudit("session.revoke_all", true, userId, now);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task<RefreshTokenRotation> RejectAsync(

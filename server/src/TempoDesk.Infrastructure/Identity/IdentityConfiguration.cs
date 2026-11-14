@@ -103,6 +103,8 @@ public static class IdentityConfiguration
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IAuthenticationTokenService,
             AuthenticationTokenService>();
+        services.AddScoped<IAuthenticationSessionService,
+            AuthenticationSessionService>();
 
         return services;
     }

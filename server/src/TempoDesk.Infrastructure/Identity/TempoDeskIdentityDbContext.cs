@@ -212,6 +212,14 @@ public sealed class TempoDeskIdentityDbContext(
             entity.Property(token => token.RevokedAt).HasColumnName("revoked_at");
             entity.Property(token => token.ReplacedByTokenId)
                 .HasColumnName("replaced_by_token_id");
+            entity.Property(token => token.DeviceName)
+                .HasColumnName("device_name")
+                .HasMaxLength(200);
+            entity.Property(token => token.UserAgent)
+                .HasColumnName("user_agent");
+            entity.Property(token => token.IpAddress)
+                .HasColumnName("ip_address")
+                .HasColumnType("inet");
             entity.Property(token => token.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(token => token.TokenHash)
                 .HasDatabaseName("ux_refresh_tokens_token_hash")

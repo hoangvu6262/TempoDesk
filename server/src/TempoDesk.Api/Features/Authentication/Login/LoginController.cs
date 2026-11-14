@@ -12,8 +12,14 @@ public sealed class LoginController(IAccountLoginService login) : ControllerBase
         LoginRequestDto request,
         CancellationToken cancellationToken)
     {
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var metadata = new SessionMetadata(
+            string.IsNullOrWhiteSpace(userAgent)
+                ? null
+                : userAgent[..Math.Min(userAgent.Length, 1024)],
+            HttpContext.Connection.RemoteIpAddress);
         var result = await login.LoginAsync(
-            request.Email, request.Password, cancellationToken);
+            request.Email, request.Password, metadata, cancellationToken);
         if (!result.Succeeded)
             return Unauthorized();
 

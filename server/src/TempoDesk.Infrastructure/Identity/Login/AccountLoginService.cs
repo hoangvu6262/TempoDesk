@@ -17,6 +17,7 @@ internal sealed class AccountLoginService(
     public async Task<LoginResult> LoginAsync(
         string email,
         string password,
+        SessionMetadata? metadata = null,
         CancellationToken cancellationToken = default)
     {
         var user = await users.FindByEmailAsync(email);
@@ -31,7 +32,8 @@ internal sealed class AccountLoginService(
 
         await using var transaction = await context.Database
             .BeginTransactionAsync(cancellationToken);
-        var issued = await tokens.IssueAsync(user.Id, cancellationToken);
+        var issued = await tokens.IssueAsync(
+            user.Id, metadata ?? SessionMetadata.Empty, cancellationToken);
         AddAudit(true, user.Id, timeProvider.GetUtcNow());
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
