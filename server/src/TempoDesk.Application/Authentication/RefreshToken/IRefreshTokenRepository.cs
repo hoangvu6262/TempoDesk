@@ -6,6 +6,7 @@ public interface IRefreshTokenRepository
         Guid userId,
         Guid familyId,
         NewRefreshToken token,
+        SessionMetadata metadata,
         CancellationToken cancellationToken = default);
 
     Task<RefreshTokenRotation> RotateAsync(

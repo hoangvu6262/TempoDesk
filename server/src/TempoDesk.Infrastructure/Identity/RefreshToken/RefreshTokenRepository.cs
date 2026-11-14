@@ -10,6 +10,7 @@ internal sealed class RefreshTokenRepository(
         Guid userId,
         Guid familyId,
         NewRefreshToken token,
+        SessionMetadata metadata,
         CancellationToken cancellationToken = default)
     {
         context.RefreshTokens.Add(new RefreshToken
@@ -19,6 +20,8 @@ internal sealed class RefreshTokenRepository(
             FamilyId = familyId,
             TokenHash = token.TokenHash,
             ExpiresAt = token.ExpiresAt,
+            UserAgent = metadata.UserAgent,
+            IpAddress = metadata.IpAddress,
             CreatedAt = token.CreatedAt
         });
         await context.SaveChangesAsync(cancellationToken);
@@ -73,6 +76,9 @@ internal sealed class RefreshTokenRepository(
             FamilyId = token.FamilyId,
             TokenHash = replacement.TokenHash,
             ExpiresAt = replacement.ExpiresAt,
+            DeviceName = token.DeviceName,
+            UserAgent = token.UserAgent,
+            IpAddress = token.IpAddress,
             CreatedAt = replacement.CreatedAt
         });
         await context.SaveChangesAsync(cancellationToken);

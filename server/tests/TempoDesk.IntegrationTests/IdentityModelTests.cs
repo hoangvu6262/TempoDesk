@@ -58,6 +58,12 @@ public sealed class IdentityModelTests
             ?.GetColumnName());
         Assert.Equal("created_at", refreshToken
             ?.FindProperty(nameof(RefreshToken.CreatedAt))?.GetColumnName());
+        Assert.Equal("device_name", refreshToken
+            ?.FindProperty(nameof(RefreshToken.DeviceName))?.GetColumnName());
+        Assert.Equal("user_agent", refreshToken
+            ?.FindProperty(nameof(RefreshToken.UserAgent))?.GetColumnName());
+        Assert.Equal("ip_address", refreshToken
+            ?.FindProperty(nameof(RefreshToken.IpAddress))?.GetColumnName());
 
         Assert.Null(model.FindEntityType(typeof(IdentityRole<Guid>)));
 

@@ -25,12 +25,19 @@ public sealed class LoginApiTests
         using var client = factory.CreateClient();
         client.BaseAddress = new Uri("https://localhost");
 
-        using var response = await client.PostAsJsonAsync("/api/auth/login",
-            new
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post, "/api/auth/login")
+        {
+            Content = JsonContent.Create(new
             {
                 email = "Person@example.com",
                 password = "Correct-Horse-7-Battery!"
-            });
+            })
+        };
+        request.Headers.TryAddWithoutValidation(
+            "User-Agent", new string('a', 1100));
+
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
@@ -47,6 +54,7 @@ public sealed class LoginApiTests
         Assert.Contains("samesite=strict", cookie,
             StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Person@example.com", service.Email);
+        Assert.Equal(new string('a', 1024), service.Metadata?.UserAgent);
     }
 
     [Fact]
@@ -114,15 +122,18 @@ public sealed class LoginApiTests
     {
         public LoginResult Result { get; set; } = LoginResult.Rejected;
         public string? Email { get; private set; }
+        public SessionMetadata? Metadata { get; private set; }
         public int CallCount { get; private set; }
 
         public Task<LoginResult> LoginAsync(
             string email,
             string password,
+            SessionMetadata? metadata = null,
             CancellationToken cancellationToken = default)
         {
             CallCount++;
             Email = email;
+            Metadata = metadata;
             return Task.FromResult(Result);
         }
     }

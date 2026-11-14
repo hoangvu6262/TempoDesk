@@ -4,6 +4,7 @@ public interface IAuthenticationTokenService
 {
     Task<AuthenticationTokenResult> IssueAsync(
         Guid userId,
+        SessionMetadata metadata,
         CancellationToken cancellationToken = default);
 
     Task<AuthenticationTokenResult?> RefreshAsync(

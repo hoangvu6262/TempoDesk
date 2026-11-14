@@ -82,6 +82,7 @@ public sealed class RefreshTokenApiTests
 
         public Task<AuthenticationTokenResult> IssueAsync(
             Guid userId,
+            SessionMetadata metadata,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 

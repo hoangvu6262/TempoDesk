@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,7 +18,10 @@ public sealed class RefreshTokenIntegrationTests
     public async Task ValidTokenRotatesOnceAndReturnsNewTokenPair()
     {
         await using var environment = await TestEnvironment.CreateAsync();
-        var initial = await environment.LoginAsync();
+        var metadata = new SessionMetadata(
+            "TempoDesk Test Agent",
+            IPAddress.Parse("203.0.113.10"));
+        var initial = await environment.LoginAsync(metadata: metadata);
         var clock = environment.Clock;
         clock.Advance(TimeSpan.FromMinutes(1));
 
@@ -37,7 +41,7 @@ public sealed class RefreshTokenIntegrationTests
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand("""
             SELECT used_at, revoked_at, replaced_by_token_id,
-                   family_id, token_hash
+                   family_id, token_hash, user_agent, ip_address, device_name
             FROM public.refresh_tokens
             ORDER BY created_at
             """, connection);
@@ -49,11 +53,17 @@ public sealed class RefreshTokenIntegrationTests
         Assert.True(reader.IsDBNull(1));
         var replacementId = reader.GetGuid(2);
         var familyId = reader.GetGuid(3);
+        Assert.Equal("TempoDesk Test Agent", reader.GetString(5));
+        Assert.Equal(metadata.IpAddress, reader.GetFieldValue<IPAddress>(6));
+        Assert.True(reader.IsDBNull(7));
         Assert.True(await reader.ReadAsync());
         Assert.True(reader.IsDBNull(0));
         Assert.True(reader.IsDBNull(1));
         Assert.Equal(familyId, reader.GetGuid(3));
         Assert.Equal(64, reader.GetString(4).Length);
+        Assert.Equal("TempoDesk Test Agent", reader.GetString(5));
+        Assert.Equal(metadata.IpAddress, reader.GetFieldValue<IPAddress>(6));
+        Assert.True(reader.IsDBNull(7));
         Assert.False(await reader.ReadAsync());
         await reader.CloseAsync();
 
@@ -201,7 +211,9 @@ public sealed class RefreshTokenIntegrationTests
                 database, services.BuildServiceProvider(), clock);
         }
 
-        public async Task<LoginResult> LoginAsync(string name = "person")
+        public async Task<LoginResult> LoginAsync(
+            string name = "person",
+            SessionMetadata? metadata = null)
         {
             await using var scope = Provider.CreateAsyncScope();
             var users = scope.ServiceProvider
@@ -215,7 +227,7 @@ public sealed class RefreshTokenIntegrationTests
             Assert.True((await users.CreateAsync(user, Password)).Succeeded);
             return await scope.ServiceProvider
                 .GetRequiredService<IAccountLoginService>()
-                .LoginAsync(user.Email, Password);
+                .LoginAsync(user.Email, Password, metadata);
         }
 
         public async Task<AuthenticationTokenResult?> RefreshAsync(
