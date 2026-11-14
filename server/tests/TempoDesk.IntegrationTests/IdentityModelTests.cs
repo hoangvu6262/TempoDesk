@@ -65,6 +65,21 @@ public sealed class IdentityModelTests
         Assert.Equal("ip_address", refreshToken
             ?.FindProperty(nameof(RefreshToken.IpAddress))?.GetColumnName());
 
+        var resetToken = model.FindEntityType(typeof(PasswordResetToken));
+        Assert.Equal("password_reset_tokens", resetToken?.GetTableName());
+        Assert.Equal("id", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.Id))?.GetColumnName());
+        Assert.Equal("user_id", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.UserId))?.GetColumnName());
+        Assert.Equal("token_hash", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.TokenHash))?.GetColumnName());
+        Assert.Equal("expires_at", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.ExpiresAt))?.GetColumnName());
+        Assert.Equal("used_at", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.UsedAt))?.GetColumnName());
+        Assert.Equal("created_at", resetToken
+            ?.FindProperty(nameof(PasswordResetToken.CreatedAt))?.GetColumnName());
+
         Assert.Null(model.FindEntityType(typeof(IdentityRole<Guid>)));
 
         Assert.DoesNotContain(

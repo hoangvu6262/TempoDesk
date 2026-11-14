@@ -23,6 +23,20 @@ public sealed class EmailDeliveryTests
     }
 
     [Fact]
+    public void IdentityRegistersTheLocalSmtpPasswordResetSender()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTempoDeskIdentity();
+        var descriptor = Assert.Single(services, service =>
+            service.ServiceType == typeof(IPasswordResetEmailSender));
+
+        Assert.Equal(
+            "SmtpPasswordResetEmailSender",
+            descriptor.ImplementationType?.Name);
+    }
+
+    [Fact]
     public async Task DisabledEmailReportsDeliveryUnavailableWithoutConnecting()
     {
         var services = new ServiceCollection();
@@ -38,6 +52,24 @@ public sealed class EmailDeliveryTests
                 "person@example.com",
                 "raw-token",
                 DateTimeOffset.UtcNow.AddMinutes(30)),
+            CancellationToken.None);
+
+        Assert.False(delivered);
+    }
+
+    [Fact]
+    public async Task DisabledPasswordResetEmailDoesNotConnect()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTempoDeskIdentity();
+        services.AddSingleton<IOptions<EmailOptions>>(
+            Options.Create(new EmailOptions()));
+        await using var provider = services.BuildServiceProvider();
+        var sender = provider.GetRequiredService<IPasswordResetEmailSender>();
+
+        var delivered = await sender.SendAsync(
+            new PasswordResetEmail("person@example.com", "raw-token"),
             CancellationToken.None);
 
         Assert.False(delivered);

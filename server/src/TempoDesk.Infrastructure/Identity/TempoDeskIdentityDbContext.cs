@@ -13,6 +13,9 @@ public sealed class TempoDeskIdentityDbContext(
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<PasswordResetToken> PasswordResetTokens =>
+        Set<PasswordResetToken>();
+
     public DbSet<SecurityAuditLog> SecurityAuditLogs =>
         Set<SecurityAuditLog>();
 
@@ -25,6 +28,7 @@ public sealed class TempoDeskIdentityDbContext(
         ConfigureExternalLogins(builder);
         ConfigureUserTokens(builder);
         ConfigureRefreshTokens(builder);
+        ConfigurePasswordResetTokens(builder);
         ConfigureEmailVerificationTokens(builder);
         ConfigureSecurityAuditLogs(builder);
     }
@@ -254,6 +258,28 @@ public sealed class TempoDeskIdentityDbContext(
             entity.HasIndex(audit => new { audit.EventType, audit.OccurredAt })
                 .HasDatabaseName("ix_security_audit_logs_event_occurred_at")
                 .IsDescending(false, true);
+        });
+    }
+
+    private static void ConfigurePasswordResetTokens(ModelBuilder builder)
+    {
+        builder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("password_reset_tokens", "public");
+            entity.HasKey(token => token.Id);
+            entity.Property(token => token.Id).HasColumnName("id");
+            entity.Property(token => token.UserId).HasColumnName("user_id");
+            entity.Property(token => token.TokenHash).HasColumnName("token_hash");
+            entity.Property(token => token.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(token => token.UsedAt).HasColumnName("used_at");
+            entity.Property(token => token.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(token => token.TokenHash)
+                .HasDatabaseName("ux_password_reset_tokens_token_hash")
+                .IsUnique();
+            entity.HasIndex(token => token.UserId)
+                .HasDatabaseName("ix_password_reset_tokens_user_id");
+            entity.HasIndex(token => token.ExpiresAt)
+                .HasDatabaseName("ix_password_reset_tokens_expires_at");
         });
     }
 }

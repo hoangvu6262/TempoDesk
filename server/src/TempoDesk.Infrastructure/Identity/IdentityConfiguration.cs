@@ -96,6 +96,8 @@ public static class IdentityConfiguration
 
         services.TryAddScoped<IEmailVerificationSender,
             SmtpEmailVerificationSender>();
+        services.TryAddScoped<IPasswordResetEmailSender,
+            SmtpPasswordResetEmailSender>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
         services.AddScoped<IAccountLoginService, AccountLoginService>();
