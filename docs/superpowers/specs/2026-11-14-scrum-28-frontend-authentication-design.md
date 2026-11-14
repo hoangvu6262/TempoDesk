@@ -73,13 +73,17 @@ authentication pages are rejected and fall back to `/app`.
 A small authentication API module uses the existing Axios client and the
 configured API base URL. It exposes only the operations required by the pages:
 
-- `POST /auth/register`;
-- `POST /auth/verify-email`;
-- `POST /auth/resend-verification`;
-- `POST /auth/login`;
-- `POST /auth/forgot-password`;
-- `POST /auth/reset-password`; and
-- `POST /auth/refresh`.
+- `POST /api/auth/register`;
+- `POST /api/auth/verify-email`;
+- `POST /api/auth/resend-verification`;
+- `POST /api/auth/login`;
+- `POST /api/auth/forgot-password`;
+- `POST /api/auth/reset-password`; and
+- `POST /api/auth/refresh`.
+
+These paths are relative to the configured API base URL. The default `/api`
+base is the reverse-proxy prefix and is stripped before forwarding, while the
+`/api/auth` segment remains part of the ASP.NET controller route.
 
 The API client reads the current access token through a callback when preparing
 each request and adds a Bearer header only when a token exists. Passwords,

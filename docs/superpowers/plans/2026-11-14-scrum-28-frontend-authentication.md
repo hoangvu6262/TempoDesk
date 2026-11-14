@@ -15,7 +15,8 @@
 - Keep access tokens in provider memory only. Never write access or refresh tokens to local storage, session storage, URLs, logs, or rendered output.
 - The refresh token remains in the server-managed HttpOnly cookie.
 - Google OAuth backend work is out of scope. Render a disabled Google action and an inert callback page.
-- API paths are relative to `VITE_API_BASE_URL`, whose default is `/api`.
+- API paths begin with `/api/auth` and are relative to `VITE_API_BASE_URL`,
+  whose default `/api` is stripped by the reverse proxy before forwarding.
 - Email is required, valid, and at most 256 characters. Passwords are at most 1024 characters; registration/reset require at least 12 characters and matching confirmation. Verification/reset tokens are at most 512 characters.
 - Every behavior change follows red-green-refactor. Run the focused failing test before production code, then the focused passing test.
 - Do not modify server code.
@@ -66,7 +67,7 @@ it('uses the existing authentication contracts', async () => {
   const client = createApiClient('/api')
   client.defaults.adapter = async (config) => {
     calls.push({ method: config.method, url: config.url, data: config.data })
-    const data = config.url === '/auth/login'
+    const data = config.url === '/api/auth/login'
       ? { accessToken: 'access', tokenType: 'Bearer', expiresIn: 300 }
       : config.url?.includes('register') ||
           config.url?.includes('resend-verification') ||
@@ -86,13 +87,13 @@ it('uses the existing authentication contracts', async () => {
   await api.refresh()
 
   expect(calls.map(({ method, url }) => [method, url])).toEqual([
-    ['post', '/auth/register'],
-    ['post', '/auth/verify-email'],
-    ['post', '/auth/resend-verification'],
-    ['post', '/auth/login'],
-    ['post', '/auth/forgot-password'],
-    ['post', '/auth/reset-password'],
-    ['post', '/auth/refresh'],
+    ['post', '/api/auth/register'],
+    ['post', '/api/auth/verify-email'],
+    ['post', '/api/auth/resend-verification'],
+    ['post', '/api/auth/login'],
+    ['post', '/api/auth/forgot-password'],
+    ['post', '/api/auth/reset-password'],
+    ['post', '/api/auth/refresh'],
   ])
   expect(JSON.parse(calls[0].data!)).toEqual({
     email: 'person@example.com',
@@ -137,20 +138,20 @@ export type AuthenticationApi = {
 export function createAuthenticationApi(client: AxiosInstance): AuthenticationApi {
   return {
     register: async (email, password) =>
-      (await client.post<AcceptedResponse>('/auth/register', { email, password })).data,
+      (await client.post<AcceptedResponse>('/api/auth/register', { email, password })).data,
     verifyEmail: async (token) => {
-      await client.post('/auth/verify-email', { token })
+      await client.post('/api/auth/verify-email', { token })
     },
     resendVerification: async (email) =>
-      (await client.post<AcceptedResponse>('/auth/resend-verification', { email })).data,
+      (await client.post<AcceptedResponse>('/api/auth/resend-verification', { email })).data,
     login: async (email, password) =>
-      (await client.post<AccessTokenResponse>('/auth/login', { email, password })).data,
+      (await client.post<AccessTokenResponse>('/api/auth/login', { email, password })).data,
     forgotPassword: async (email) =>
-      (await client.post<AcceptedResponse>('/auth/forgot-password', { email })).data,
+      (await client.post<AcceptedResponse>('/api/auth/forgot-password', { email })).data,
     resetPassword: async (token, newPassword) => {
-      await client.post('/auth/reset-password', { token, newPassword })
+      await client.post('/api/auth/reset-password', { token, newPassword })
     },
-    refresh: async () => (await client.post<AccessTokenResponse>('/auth/refresh')).data,
+    refresh: async () => (await client.post<AccessTokenResponse>('/api/auth/refresh')).data,
   }
 }
 ```

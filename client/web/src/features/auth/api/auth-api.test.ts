@@ -21,11 +21,11 @@ it('uses the existing authentication contracts', async () => {
   client.defaults.adapter = (async (config) => {
     calls.push({ method: config.method, url: config.url, data: config.data })
     const data =
-      config.url === '/auth/login' || config.url === '/auth/refresh'
+      config.url === '/api/auth/login' || config.url === '/api/auth/refresh'
         ? { accessToken: 'access', tokenType: 'Bearer', expiresIn: 300 }
-        : config.url === '/auth/register' ||
-            config.url === '/auth/resend-verification' ||
-            config.url === '/auth/forgot-password'
+        : config.url === '/api/auth/register' ||
+            config.url === '/api/auth/resend-verification' ||
+            config.url === '/api/auth/forgot-password'
           ? { message: 'Accepted' }
           : undefined
     return response(config, data, data ? 200 : 204)
@@ -41,13 +41,13 @@ it('uses the existing authentication contracts', async () => {
   await api.refresh()
 
   expect(calls.map(({ method, url }) => [method, url])).toEqual([
-    ['post', '/auth/register'],
-    ['post', '/auth/verify-email'],
-    ['post', '/auth/resend-verification'],
-    ['post', '/auth/login'],
-    ['post', '/auth/forgot-password'],
-    ['post', '/auth/reset-password'],
-    ['post', '/auth/refresh'],
+    ['post', '/api/auth/register'],
+    ['post', '/api/auth/verify-email'],
+    ['post', '/api/auth/resend-verification'],
+    ['post', '/api/auth/login'],
+    ['post', '/api/auth/forgot-password'],
+    ['post', '/api/auth/reset-password'],
+    ['post', '/api/auth/refresh'],
   ])
   expect(JSON.parse(calls[0].data!)).toEqual({
     email: 'person@example.com',

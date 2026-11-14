@@ -24,34 +24,37 @@ export function createAuthenticationApi(
   return {
     register: async (email, password) =>
       (
-        await client.post<AcceptedResponse>('/auth/register', {
+        await client.post<AcceptedResponse>('/api/auth/register', {
           email,
           password,
         })
       ).data,
     verifyEmail: async (token) => {
-      await client.post('/auth/verify-email', { token })
+      await client.post('/api/auth/verify-email', { token })
     },
     resendVerification: async (email) =>
       (
-        await client.post<AcceptedResponse>('/auth/resend-verification', {
+        await client.post<AcceptedResponse>('/api/auth/resend-verification', {
           email,
         })
       ).data,
     login: async (email, password) =>
       (
-        await client.post<AccessTokenResponse>('/auth/login', {
+        await client.post<AccessTokenResponse>('/api/auth/login', {
           email,
           password,
         })
       ).data,
     forgotPassword: async (email) =>
-      (await client.post<AcceptedResponse>('/auth/forgot-password', { email }))
-        .data,
+      (
+        await client.post<AcceptedResponse>('/api/auth/forgot-password', {
+          email,
+        })
+      ).data,
     resetPassword: async (token, newPassword) => {
-      await client.post('/auth/reset-password', { token, newPassword })
+      await client.post('/api/auth/reset-password', { token, newPassword })
     },
     refresh: async () =>
-      (await client.post<AccessTokenResponse>('/auth/refresh')).data,
+      (await client.post<AccessTokenResponse>('/api/auth/refresh')).data,
   }
 }
