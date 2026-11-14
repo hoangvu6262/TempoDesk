@@ -5,10 +5,9 @@ export function HealthStatus({ baseUrl }: { baseUrl: string }) {
   const [state, setState] = useState<HealthState>('loading')
   useEffect(() => {
     const controller = new AbortController()
-    createApiClient(baseUrl)<unknown>('/health/ready', {
-      signal: controller.signal,
-    })
-      .then((data) => {
+    createApiClient(baseUrl)
+      .get<unknown>('/health/ready', { signal: controller.signal })
+      .then(({ data }) => {
         if (controller.signal.aborted) return
         if (
           typeof data !== 'object' ||
