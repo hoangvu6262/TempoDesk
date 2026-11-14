@@ -7,7 +7,9 @@ import type { AcceptedResponse, AuthenticationApi } from '../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { RegisterPage } from './RegisterPage'
 
-function fakeApi(overrides: Partial<AuthenticationApi> = {}): AuthenticationApi {
+function fakeApi(
+  overrides: Partial<AuthenticationApi> = {},
+): AuthenticationApi {
   return {
     register: vi.fn(),
     verifyEmail: vi.fn(),
@@ -51,16 +53,10 @@ describe('RegisterPage', () => {
 
     await user.type(screen.getByLabelText(/^Email/), 'person@example.com')
     await user.type(screen.getByLabelText(/^Password/), 'LongPassword1')
-    await user.type(
-      screen.getByLabelText(/^Confirm password/),
-      'LongPassword1',
-    )
+    await user.type(screen.getByLabelText(/^Confirm password/), 'LongPassword1')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
-    expect(register).toHaveBeenCalledWith(
-      'person@example.com',
-      'LongPassword1',
-    )
+    expect(register).toHaveBeenCalledWith('person@example.com', 'LongPassword1')
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'If the address can be verified, an email will be sent.',
     )
@@ -77,10 +73,7 @@ describe('RegisterPage', () => {
 
     await user.type(screen.getByLabelText(/^Email/), 'person@example.com')
     await user.type(screen.getByLabelText(/^Password/), 'LongPassword1')
-    await user.type(
-      screen.getByLabelText(/^Confirm password/),
-      'LongPassword1',
-    )
+    await user.type(screen.getByLabelText(/^Confirm password/), 'LongPassword1')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByText('This email cannot be used.')).toBeVisible()
@@ -92,10 +85,7 @@ describe('RegisterPage', () => {
     renderPage(fakeApi({ register }))
     await user.type(screen.getByLabelText(/^Email/), 'person@example.com')
     await user.type(screen.getByLabelText(/^Password/), 'LongPassword1')
-    await user.type(
-      screen.getByLabelText(/^Confirm password/),
-      'LongPassword1',
-    )
+    await user.type(screen.getByLabelText(/^Confirm password/), 'LongPassword1')
 
     const submit = screen.getByRole('button', { name: 'Create account' })
     await user.click(submit)

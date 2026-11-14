@@ -31,9 +31,7 @@ describe('authentication form errors', () => {
     expect(validatePassword('a'.repeat(1025))).toBe(
       'Password must be 1024 characters or fewer.',
     )
-    expect(validateConfirmation('one', 'two')).toBe(
-      'Passwords do not match.',
-    )
+    expect(validateConfirmation('one', 'two')).toBe('Passwords do not match.')
   })
 
   it('matches Problem Details field names case-insensitively', () => {

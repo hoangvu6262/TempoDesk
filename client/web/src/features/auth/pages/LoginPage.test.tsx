@@ -1,11 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthenticationApi } from '../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
@@ -15,10 +10,18 @@ const api = {} as AuthenticationApi
 
 function LocationProbe() {
   const location = useLocation()
-  return <span data-testid="location">{location.pathname}{location.search}</span>
+  return (
+    <span data-testid="location">
+      {location.pathname}
+      {location.search}
+    </span>
+  )
 }
 
-function renderLogin(entry: string, login = vi.fn().mockResolvedValue(undefined)) {
+function renderLogin(
+  entry: string,
+  login = vi.fn().mockResolvedValue(undefined),
+) {
   render(
     <AuthContext
       value={{ status: 'anonymous', api, login, logoutLocal: vi.fn() }}
@@ -79,7 +82,9 @@ describe('LoginPage', () => {
   it('keeps Google unavailable without starting OAuth', () => {
     renderLogin('/login')
     expect(
-      screen.getByRole('button', { name: 'Continue with Google — unavailable' }),
+      screen.getByRole('button', {
+        name: 'Continue with Google — unavailable',
+      }),
     ).toBeDisabled()
     expect(screen.getByText(/Chưa khả dụng/)).toBeVisible()
   })

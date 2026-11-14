@@ -12,14 +12,10 @@ export function validatePassword(value: string, minimum = 12) {
   if (!value) return 'Password is required.'
   if (value.length < minimum)
     return `Password must be at least ${minimum} characters.`
-  if (value.length > 1024)
-    return 'Password must be 1024 characters or fewer.'
+  if (value.length > 1024) return 'Password must be 1024 characters or fewer.'
 }
 
-export function validateConfirmation(
-  password: string,
-  confirmation: string,
-) {
+export function validateConfirmation(password: string, confirmation: string) {
   if (!confirmation) return 'Confirm your password.'
   if (password !== confirmation) return 'Passwords do not match.'
 }

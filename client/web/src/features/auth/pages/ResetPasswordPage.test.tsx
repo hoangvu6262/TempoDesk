@@ -7,7 +7,9 @@ import type { AuthenticationApi } from '../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { ResetPasswordPage } from './ResetPasswordPage'
 
-function fakeApi(overrides: Partial<AuthenticationApi> = {}): AuthenticationApi {
+function fakeApi(
+  overrides: Partial<AuthenticationApi> = {},
+): AuthenticationApi {
   return {
     register: vi.fn(),
     verifyEmail: vi.fn(),
@@ -56,20 +58,13 @@ describe('ResetPasswordPage', () => {
     )
 
     await user.type(screen.getByLabelText(/^New password/), 'NewPassword12')
-    await user.type(
-      screen.getByLabelText(/^Confirm password/),
-      'NewPassword12',
-    )
+    await user.type(screen.getByLabelText(/^Confirm password/), 'NewPassword12')
     await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
-    expect(resetPassword).toHaveBeenCalledWith(
-      'reset/token',
-      'NewPassword12',
-    )
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute(
-      'href',
-      '/login',
-    )
+    expect(resetPassword).toHaveBeenCalledWith('reset/token', 'NewPassword12')
+    expect(
+      await screen.findByRole('link', { name: 'Sign in' }),
+    ).toHaveAttribute('href', '/login')
   })
 
   it('maps server password validation to the field', async () => {
@@ -81,10 +76,7 @@ describe('ResetPasswordPage', () => {
     )
     renderPage(fakeApi({ resetPassword }), '/reset-password?token=valid')
     await user.type(screen.getByLabelText(/^New password/), 'NewPassword12')
-    await user.type(
-      screen.getByLabelText(/^Confirm password/),
-      'NewPassword12',
-    )
+    await user.type(screen.getByLabelText(/^Confirm password/), 'NewPassword12')
     await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
     expect(await screen.findByText('Use a stronger password.')).toBeVisible()

@@ -7,7 +7,9 @@ import type { AuthenticationApi } from '../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { VerifyEmailPage } from './VerifyEmailPage'
 
-function fakeApi(overrides: Partial<AuthenticationApi> = {}): AuthenticationApi {
+function fakeApi(
+  overrides: Partial<AuthenticationApi> = {},
+): AuthenticationApi {
   return {
     register: vi.fn(),
     verifyEmail: vi.fn(),
@@ -40,10 +42,7 @@ function renderPage(api: AuthenticationApi, entry: string) {
 describe('VerifyEmailPage', () => {
   it('verifies the URL token once and links to login', async () => {
     const verifyEmail = vi.fn().mockResolvedValue(undefined)
-    renderPage(
-      fakeApi({ verifyEmail }),
-      '/verify-email?token=abc%2F123',
-    )
+    renderPage(fakeApi({ verifyEmail }), '/verify-email?token=abc%2F123')
 
     expect(await screen.findByText('Email verified')).toBeVisible()
     expect(verifyEmail).toHaveBeenCalledTimes(1)
@@ -73,7 +72,9 @@ describe('VerifyEmailPage', () => {
       fakeApi({
         verifyEmail: vi.fn().mockRejectedValue(
           new ApiError('Invalid', {
-            errors: { token: ['The verification token is invalid or expired.'] },
+            errors: {
+              token: ['The verification token is invalid or expired.'],
+            },
           }),
         ),
         resendVerification,

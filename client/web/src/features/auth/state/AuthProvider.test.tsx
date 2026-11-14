@@ -2,10 +2,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  AccessTokenResponse,
-  AuthenticationApi,
-} from '../api/auth-api'
+import type { AccessTokenResponse, AuthenticationApi } from '../api/auth-api'
 import { AuthProvider } from './AuthProvider'
 import { useAuth } from './AuthContext'
 
@@ -19,7 +16,9 @@ function deferred<T>() {
   return { promise, reject, resolve }
 }
 
-function fakeApi(overrides: Partial<AuthenticationApi> = {}): AuthenticationApi {
+function fakeApi(
+  overrides: Partial<AuthenticationApi> = {},
+): AuthenticationApi {
   return {
     register: vi.fn(),
     verifyEmail: vi.fn(),
@@ -47,10 +46,11 @@ function StatusProbe() {
   )
 }
 
-const token = (
-  accessToken: string,
-  expiresIn = 300,
-): AccessTokenResponse => ({ accessToken, tokenType: 'Bearer', expiresIn })
+const token = (accessToken: string, expiresIn = 300): AccessTokenResponse => ({
+  accessToken,
+  tokenType: 'Bearer',
+  expiresIn,
+})
 
 describe('AuthProvider', () => {
   it('hides authentication until startup refresh resolves', async () => {

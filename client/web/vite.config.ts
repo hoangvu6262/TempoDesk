@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => ({
         'src/lib/**',
         'src/config/**',
         'src/app/**',
+        'src/features/**',
         'src/ui/**',
         'src/App.tsx',
       ],

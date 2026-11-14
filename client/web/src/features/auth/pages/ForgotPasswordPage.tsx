@@ -1,11 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { Alert, AuthLayout, Button, FormField, Input } from '../../../ui'
-import {
-  fieldError,
-  pageError,
-  validateEmail,
-} from '../forms/form-errors'
+import { fieldError, pageError, validateEmail } from '../forms/form-errors'
 import { useAuth } from '../state/AuthContext'
 import './AuthPages.scss'
 
@@ -42,9 +38,21 @@ export function ForgotPasswordPage() {
       description="Enter your email and we will send a reset link if the account exists."
       footer={<Link to="/login">Back to sign in</Link>}
     >
-      <form className="td-auth-form" aria-label="Forgot password" onSubmit={submit}>
-        {message && <Alert role="alert" variant="success">{message}</Alert>}
-        {requestError && <Alert role="alert" variant="error">{requestError}</Alert>}
+      <form
+        className="td-auth-form"
+        aria-label="Forgot password"
+        onSubmit={submit}
+      >
+        {message && (
+          <Alert role="alert" variant="success">
+            {message}
+          </Alert>
+        )}
+        {requestError && (
+          <Alert role="alert" variant="error">
+            {requestError}
+          </Alert>
+        )}
         <FormField label="Email" error={emailError} required>
           {(props) => (
             <Input

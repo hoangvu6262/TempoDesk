@@ -59,7 +59,9 @@ export function ResetPasswordPage() {
         <Alert role="alert" variant="error">
           The reset link is invalid or expired.
         </Alert>
-        <p><Link to="/forgot-password">Request a new reset link</Link></p>
+        <p>
+          <Link to="/forgot-password">Request a new reset link</Link>
+        </p>
       </AuthLayout>
     )
   }
@@ -68,7 +70,9 @@ export function ResetPasswordPage() {
     return (
       <AuthLayout title="Password reset">
         <Alert variant="success">Your password has been updated.</Alert>
-        <p><Link to="/login">Sign in</Link></p>
+        <p>
+          <Link to="/login">Sign in</Link>
+        </p>
       </AuthLayout>
     )
   }
@@ -79,8 +83,16 @@ export function ResetPasswordPage() {
       description="Choose a new password for your TempoDesk account."
       footer={<Link to="/login">Back to sign in</Link>}
     >
-      <form className="td-auth-form" aria-label="Reset password" onSubmit={submit}>
-        {requestError && <Alert role="alert" variant="error">{requestError}</Alert>}
+      <form
+        className="td-auth-form"
+        aria-label="Reset password"
+        onSubmit={submit}
+      >
+        {requestError && (
+          <Alert role="alert" variant="error">
+            {requestError}
+          </Alert>
+        )}
         <FormField
           label="New password"
           description="Use at least 12 characters."
@@ -98,7 +110,11 @@ export function ResetPasswordPage() {
             />
           )}
         </FormField>
-        <FormField label="Confirm password" error={errors.confirmation} required>
+        <FormField
+          label="Confirm password"
+          error={errors.confirmation}
+          required
+        >
           {(props) => (
             <PasswordInput
               {...props}

@@ -14,10 +14,10 @@ it('does not consume or render callback parameters', () => {
     </MemoryRouter>,
   )
 
+  expect(screen.getByText('Google sign-in is not configured')).toBeVisible()
   expect(
-    screen.getByText('Google sign-in is not configured'),
-  ).toBeVisible()
-  expect(screen.queryByText(/private-code|private-state/)).not.toBeInTheDocument()
+    screen.queryByText(/private-code|private-state/),
+  ).not.toBeInTheDocument()
   expect(localStorage).toHaveLength(0)
   expect(sessionStorage).toHaveLength(0)
 })

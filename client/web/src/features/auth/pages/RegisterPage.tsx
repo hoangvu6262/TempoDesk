@@ -70,9 +70,21 @@ export function RegisterPage() {
         </>
       }
     >
-      <form className="td-auth-form" aria-label="Create account" onSubmit={submit}>
-        {message && <Alert role="alert" variant="success">{message}</Alert>}
-        {requestError && <Alert role="alert" variant="error">{requestError}</Alert>}
+      <form
+        className="td-auth-form"
+        aria-label="Create account"
+        onSubmit={submit}
+      >
+        {message && (
+          <Alert role="alert" variant="success">
+            {message}
+          </Alert>
+        )}
+        {requestError && (
+          <Alert role="alert" variant="error">
+            {requestError}
+          </Alert>
+        )}
         <FormField label="Email" error={errors.email} required>
           {(props) => (
             <Input
@@ -102,7 +114,11 @@ export function RegisterPage() {
             />
           )}
         </FormField>
-        <FormField label="Confirm password" error={errors.confirmation} required>
+        <FormField
+          label="Confirm password"
+          error={errors.confirmation}
+          required
+        >
           {(props) => (
             <PasswordInput
               {...props}

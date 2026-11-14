@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Alert, AuthLayout, Button, FormField, Input } from '../../../ui'
-import {
-  fieldError,
-  pageError,
-  validateEmail,
-} from '../forms/form-errors'
+import { fieldError, pageError, validateEmail } from '../forms/form-errors'
 import { useAuth } from '../state/AuthContext'
 import './AuthPages.scss'
 
@@ -31,9 +27,7 @@ export function VerifyEmailPage() {
       .verifyEmail(token)
       .then(() => setState('success'))
       .catch((error: unknown) => {
-        setRequestError(
-          fieldError(error, 'token') ?? pageError(error, []),
-        )
+        setRequestError(fieldError(error, 'token') ?? pageError(error, []))
         setState('error')
       })
   }, [api, token, validToken])
@@ -68,7 +62,9 @@ export function VerifyEmailPage() {
     return (
       <AuthLayout title="Email verified">
         <Alert variant="success">Your email address is ready to use.</Alert>
-        <p><Link to="/login">Sign in</Link></p>
+        <p>
+          <Link to="/login">Sign in</Link>
+        </p>
       </AuthLayout>
     )
   }
@@ -79,13 +75,21 @@ export function VerifyEmailPage() {
       description="Request a new link below."
       footer={<Link to="/login">Back to sign in</Link>}
     >
-      <form className="td-auth-form" aria-label="Resend verification" onSubmit={resend}>
+      <form
+        className="td-auth-form"
+        aria-label="Resend verification"
+        onSubmit={resend}
+      >
         {(requestError || !validToken) && (
           <Alert role="alert" variant="error">
             {requestError ?? 'The verification link is invalid or expired.'}
           </Alert>
         )}
-        {message && <Alert role="alert" variant="success">{message}</Alert>}
+        {message && (
+          <Alert role="alert" variant="success">
+            {message}
+          </Alert>
+        )}
         <FormField label="Email" error={emailError} required>
           {(props) => (
             <Input

@@ -2,10 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  AcceptedResponse,
-  AuthenticationApi,
-} from '../api/auth-api'
+import type { AcceptedResponse, AuthenticationApi } from '../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { ForgotPasswordPage } from './ForgotPasswordPage'
 
@@ -64,9 +61,7 @@ describe('ForgotPasswordPage', () => {
 
   it('prevents duplicate submission while pending', async () => {
     const user = userEvent.setup()
-    const forgotPassword = vi.fn(
-      () => new Promise<AcceptedResponse>(() => {}),
-    )
+    const forgotPassword = vi.fn(() => new Promise<AcceptedResponse>(() => {}))
     renderPage(fakeApi({ forgotPassword }))
     await user.type(screen.getByLabelText(/^Email/), 'person@example.com')
 

@@ -1,7 +1,15 @@
 import { Link, Route, Routes } from 'react-router'
 import { HealthStatus } from './app/HealthStatus'
+import { AuthenticatedHome } from './app/AuthenticatedHome'
 import { UiKitPage } from './app/UiKitPage'
 import { readClientConfig } from './config/env'
+import { ForgotPasswordPage } from './features/auth/pages/ForgotPasswordPage'
+import { GoogleCallbackPage } from './features/auth/pages/GoogleCallbackPage'
+import { LoginPage } from './features/auth/pages/LoginPage'
+import { RegisterPage } from './features/auth/pages/RegisterPage'
+import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage'
+import { VerifyEmailPage } from './features/auth/pages/VerifyEmailPage'
+import { ProtectedRoute } from './features/auth/routing/ProtectedRoute'
 import type { ReactNode } from 'react'
 
 function Landing() {
@@ -107,6 +115,22 @@ export default function App() {
   return (
     <Routes>
       {import.meta.env.DEV && <Route path="/ui-kit" element={<UiKitPage />} />}
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <AuthenticatedHome />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/"
         element={

@@ -46,9 +46,8 @@ export function createAuthenticationApi(
         })
       ).data,
     forgotPassword: async (email) =>
-      (
-        await client.post<AcceptedResponse>('/auth/forgot-password', { email })
-      ).data,
+      (await client.post<AcceptedResponse>('/auth/forgot-password', { email }))
+        .data,
     resetPassword: async (token, newPassword) => {
       await client.post('/auth/reset-password', { token, newPassword })
     },
