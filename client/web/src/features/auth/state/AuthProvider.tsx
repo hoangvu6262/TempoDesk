@@ -30,7 +30,10 @@ function createAuthRuntime(injectedApi?: AuthenticationApi) {
   let accessToken: string | null = null
   const client = createApiClient(
     readClientConfig(import.meta.env).apiBaseUrl,
-    () => (accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    () =>
+      accessToken
+        ? new Headers({ Authorization: `Bearer ${accessToken}` })
+        : new Headers(),
   )
   client.defaults.withCredentials = true
   return {
