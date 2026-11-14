@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Translate API errors, ErrorBoundary, invalid configuration, HealthStatus, and UI Kit error examples.
+- Translate API errors, ErrorBoundary, invalid configuration, the not-found state, HealthStatus, and UI Kit error examples.
 - Keep valid server-provided Problem Details `detail` unchanged.
 - Do not translate unrelated product copy.
 - Do not add i18n, TanStack Query, or dependencies.
@@ -50,6 +50,7 @@ The request was cancelled.
 The API response is invalid.
 Something went wrong
 Application configuration is invalid
+Page not found
 Checking API
 API is ready
 API is unavailable
@@ -94,6 +95,7 @@ Use these exact values:
 ```text
 ErrorBoundary: Something went wrong / Reload the page and try again. / Back to home
 Invalid config: Application configuration is invalid / Check VITE_API_BASE_URL and VITE_SIGNALR_BASE_URL, then restart the application.
+Not found: Page not found / This page does not exist in TempoDesk. / Back to home →
 Health: Checking API… / API is ready / API is unavailable / The health response is invalid / Check the API connection and database status.
 UI Kit: Invalid email / Enter a valid email address. / Error / Unable to complete the action.
 ```

@@ -1,3 +1,4 @@
+import { API_ERROR_MESSAGE } from '../../constants/errors'
 import { ApiError } from './api-error'
 
 export function assertSafeApiPath(path: string) {
@@ -7,7 +8,7 @@ export function assertSafeApiPath(path: string) {
     /[\s\p{Cc}\\?#%]/u.test(path) ||
     path.split('/').some((part) => part === '..' || part === '.')
   ) {
-    throw new ApiError('Đường dẫn API không hợp lệ.', {
+    throw new ApiError(API_ERROR_MESSAGE.invalidPath, {
       kind: 'invalid-response',
     })
   }

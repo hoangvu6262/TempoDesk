@@ -105,7 +105,7 @@ describe('API boundary', () => {
     })
     await expect(request.get('/tasks')).rejects.toMatchObject({
       status: 500,
-      detail: 'Không thể hoàn tất yêu cầu.',
+      detail: 'Unable to complete the request.',
     })
   })
 

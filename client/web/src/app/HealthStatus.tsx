@@ -33,10 +33,10 @@ export function HealthStatus({ baseUrl }: { baseUrl: string }) {
     return () => controller.abort()
   }, [baseUrl])
   const labels = {
-    loading: 'Đang kiểm tra API…',
-    healthy: 'API sẵn sàng',
-    unavailable: 'API chưa sẵn sàng',
-    malformed: 'Phản hồi sức khỏe không hợp lệ',
+    loading: 'Checking API…',
+    healthy: 'API is ready',
+    unavailable: 'API is unavailable',
+    malformed: 'The health response is invalid',
   }
   return (
     <div
@@ -47,7 +47,7 @@ export function HealthStatus({ baseUrl }: { baseUrl: string }) {
       <span className="td-health-status__dot" aria-hidden="true" />
       <div>
         <strong>{labels[state]}</strong>
-        <p>Kiểm tra kết nối và trạng thái cơ sở dữ liệu.</p>
+        <p>Check the API connection and database status.</p>
       </div>
     </div>
   )

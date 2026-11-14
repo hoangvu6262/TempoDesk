@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosHeaders } from 'axios'
+import { API_ERROR_MESSAGE } from '../../constants/errors'
 import { PROBLEM_JSON_MEDIA_TYPE } from '../../constants/http'
 
 export type ApiErrorKind =
@@ -50,28 +51,28 @@ function readValidationErrors(value: unknown) {
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error
   if (axios.isCancel(error)) {
-    return new ApiError('Yêu cầu đã được hủy.', { kind: 'cancelled' })
+    return new ApiError(API_ERROR_MESSAGE.cancelled, { kind: 'cancelled' })
   }
   if (!axios.isAxiosError(error)) {
-    return new ApiError('Không thể kết nối đến API.', { kind: 'network' })
+    return new ApiError(API_ERROR_MESSAGE.network, { kind: 'network' })
   }
   if (
     error.code === AxiosError.ECONNABORTED ||
     error.code === AxiosError.ETIMEDOUT
   ) {
-    return new ApiError('API phản hồi quá thời gian chờ.', { kind: 'timeout' })
+    return new ApiError(API_ERROR_MESSAGE.timeout, { kind: 'timeout' })
   }
 
   const { response } = error
   if (!response) {
-    return new ApiError('Không thể kết nối đến API.', { kind: 'network' })
+    return new ApiError(API_ERROR_MESSAGE.network, { kind: 'network' })
   }
   if (
     response.status >= 200 &&
     response.status < 300 &&
     error.code === AxiosError.ERR_BAD_RESPONSE
   ) {
-    return new ApiError('Phản hồi API không hợp lệ.', {
+    return new ApiError(API_ERROR_MESSAGE.invalidResponse, {
       status: response.status,
       kind: 'invalid-response',
     })
@@ -91,7 +92,7 @@ export function toApiError(error: unknown): ApiError {
   return new ApiError(
     typeof problem.detail === 'string'
       ? problem.detail
-      : 'Không thể hoàn tất yêu cầu.',
+      : API_ERROR_MESSAGE.requestFailed,
     {
       status: response.status,
       traceId:

@@ -21,13 +21,17 @@ it('shows loading while awaiting API readiness', () => {
         config.signal.addEventListener(
           'abort',
           () =>
-            reject(new ApiError('Yêu cầu đã được hủy.', { kind: 'cancelled' })),
+            reject(
+              new ApiError('The request was cancelled.', {
+                kind: 'cancelled',
+              }),
+            ),
           { once: true },
         )
       }),
   )
   render(<HealthStatus baseUrl="/api" />)
-  expect(screen.getByRole('status')).toHaveTextContent('Đang kiểm tra API')
+  expect(screen.getByRole('status')).toHaveTextContent('Checking API')
 })
 
 it('shows healthy readiness', async () => {
@@ -35,18 +39,18 @@ it('shows healthy readiness', async () => {
     data: { status: 'Healthy', elapsedMs: 1.5 },
   })
   render(<HealthStatus baseUrl="/api" />)
-  expect(await screen.findByText('API sẵn sàng')).toBeVisible()
+  expect(await screen.findByText('API is ready')).toBeVisible()
 })
 
 it('shows malformed readiness when JSON cannot be parsed', async () => {
   api.get.mockRejectedValue(
-    new ApiError('Phản hồi API không hợp lệ.', {
+    new ApiError('The API response is invalid.', {
       kind: 'invalid-response',
     }),
   )
   render(<HealthStatus baseUrl="/api" />)
   expect(
-    await screen.findByText('Phản hồi sức khỏe không hợp lệ'),
+    await screen.findByText('The health response is invalid'),
   ).toBeVisible()
 })
 
@@ -55,7 +59,7 @@ it('shows unavailable readiness for an API failure', async () => {
     new ApiError('Service unavailable', { status: 503 }),
   )
   render(<HealthStatus baseUrl="/api" />)
-  expect(await screen.findByText('API chưa sẵn sàng')).toBeVisible()
+  expect(await screen.findByText('API is unavailable')).toBeVisible()
 })
 
 it('shows unavailable readiness for an unhealthy response', async () => {
@@ -63,7 +67,7 @@ it('shows unavailable readiness for an unhealthy response', async () => {
     data: { status: 'Unhealthy', elapsedMs: 1 },
   })
   render(<HealthStatus baseUrl="/api" />)
-  expect(await screen.findByText('API chưa sẵn sàng')).toBeVisible()
+  expect(await screen.findByText('API is unavailable')).toBeVisible()
 })
 
 it.each([
@@ -76,6 +80,6 @@ it.each([
   api.get.mockResolvedValue({ data })
   render(<HealthStatus baseUrl="/api" />)
   expect(
-    await screen.findByText('Phản hồi sức khỏe không hợp lệ'),
+    await screen.findByText('The health response is invalid'),
   ).toBeVisible()
 })

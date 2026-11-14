@@ -11,10 +11,10 @@ function Landing() {
   } catch {
     return (
       <section role="alert">
-        <h1>Cấu hình ứng dụng không hợp lệ</h1>
+        <h1>Application configuration is invalid</h1>
         <p>
-          Kiểm tra VITE_API_BASE_URL và VITE_SIGNALR_BASE_URL, sau đó khởi động
-          lại ứng dụng.
+          Check VITE_API_BASE_URL and VITE_SIGNALR_BASE_URL, then restart the
+          application.
         </p>
       </section>
     )
@@ -94,11 +94,11 @@ function NotFound() {
   return (
     <section className="td-not-found">
       <div className="td-not-found__eyebrow">404</div>
-      <h1 className="td-not-found__title">Không tìm thấy trang</h1>
+      <h1 className="td-not-found__title">Page not found</h1>
       <p className="td-not-found__description">
-        Đường dẫn này chưa tồn tại trong TempoDesk.
+        This page does not exist in TempoDesk.
       </p>
-      <Link to="/">Về trang chủ →</Link>
+      <Link to="/">Back to home →</Link>
     </section>
   )
 }

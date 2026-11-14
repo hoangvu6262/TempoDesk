@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { API_ERROR_MESSAGE } from '../../constants/errors'
 import {
   DEFAULT_API_TIMEOUT_MS,
   JSON_ACCEPT_HEADER,
@@ -25,7 +26,7 @@ export function createApiClient(
       config.timeout <= 0
     ) {
       throw toApiError(
-        new ApiError('Thời gian chờ không hợp lệ.', {
+        new ApiError(API_ERROR_MESSAGE.invalidTimeout, {
           kind: 'invalid-response',
         }),
       )

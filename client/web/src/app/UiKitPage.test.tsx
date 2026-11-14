@@ -24,7 +24,7 @@ it('shows supported components and changes theme preference', async () => {
     screen.getByRole('heading', { name: 'TempoDesk UI Kit' }),
   ).toBeVisible()
   expect(screen.getByRole('button', { name: 'Đang lưu' })).toBeDisabled()
-  expect(screen.getByRole('textbox', { name: 'Email lỗi' })).toBeInvalid()
+  expect(screen.getByRole('textbox', { name: 'Invalid email' })).toBeInvalid()
   await user.click(screen.getByRole('button', { name: 'Dark' }))
   expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
 })

@@ -121,7 +121,7 @@ export function UiKitPage() {
               <Input {...props} type="email" placeholder="you@company.com" />
             )}
           </FormField>
-          <FormField label="Email lỗi" error="Email không hợp lệ">
+          <FormField label="Invalid email" error="Enter a valid email address.">
             {(props) => (
               <Input {...props} type="email" defaultValue="invalid" />
             )}
@@ -129,9 +129,9 @@ export function UiKitPage() {
           <FormField label="Mật khẩu" required>
             {(props) => <PasswordInput {...props} />}
           </FormField>
-          <FormField label="Trường bị tắt">
+          <FormField label="Disabled field">
             {(props) => (
-              <Input {...props} disabled value="Không thể sửa" readOnly />
+              <Input {...props} disabled value="Read only" readOnly />
             )}
           </FormField>
         </div>
@@ -154,8 +154,8 @@ export function UiKitPage() {
           <Alert variant="warning" title="Lưu ý">
             Phiên làm việc sắp hết hạn.
           </Alert>
-          <Alert variant="error" title="Có lỗi">
-            Không thể hoàn thành thao tác.
+          <Alert variant="error" title="Error">
+            Unable to complete the action.
           </Alert>
           <div className="td-ui-kit__row">
             <Spinner size="small" label="Đang tải nhỏ" />

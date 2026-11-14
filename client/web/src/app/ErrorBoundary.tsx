@@ -11,9 +11,9 @@ export class ErrorBoundary extends Component<
     if (this.state.failed)
       return (
         <main className="td-error-fallback" role="alert">
-          <h1>Đã có lỗi xảy ra</h1>
-          <p>Vui lòng tải lại trang để thử lại.</p>
-          <a href="/">Về trang chủ</a>
+          <h1>Something went wrong</h1>
+          <p>Reload the page and try again.</p>
+          <a href="/">Back to home</a>
         </main>
       )
     return this.props.children

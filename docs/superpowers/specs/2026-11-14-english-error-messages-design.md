@@ -8,6 +8,7 @@ Use consistent English for every user-facing frontend error, failure, cancellati
 
 - Translate safe Axios/API error details.
 - Translate ErrorBoundary and invalid client configuration fallback content.
+- Translate the not-found error state.
 - Translate HealthStatus labels and its supporting diagnostic text so one status region does not mix languages.
 - Translate UI Kit error examples and their accessible labels.
 - Update every affected test assertion.
@@ -43,6 +44,9 @@ Use these exact translations:
 | ErrorBoundary home link | `Back to home` |
 | Invalid configuration heading | `Application configuration is invalid` |
 | Invalid configuration description | `Check VITE_API_BASE_URL and VITE_SIGNALR_BASE_URL, then restart the application.` |
+| Not-found heading | `Page not found` |
+| Not-found description | `This page does not exist in TempoDesk.` |
+| Not-found home link | `Back to home →` |
 | Health loading | `Checking API…` |
 | Health ready | `API is ready` |
 | Health unavailable | `API is unavailable` |
