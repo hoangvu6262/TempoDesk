@@ -3,6 +3,29 @@ import { MemoryRouter } from 'react-router'
 import { expect, it, vi } from 'vitest'
 import App from './App'
 import { ErrorBoundary } from './app/ErrorBoundary'
+import { ThemeProvider } from './ui'
+
+function matchMedia() {
+  return {
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }
+}
+
+it('exposes the UI Kit in development', () => {
+  vi.stubGlobal('matchMedia', vi.fn(matchMedia))
+  render(
+    <ThemeProvider>
+      <MemoryRouter initialEntries={['/ui-kit']}>
+        <App />
+      </MemoryRouter>
+    </ThemeProvider>,
+  )
+  expect(
+    screen.getByRole('heading', { name: 'TempoDesk UI Kit' }),
+  ).toBeVisible()
+})
 it('renders a useful not-found route', () => {
   render(
     <MemoryRouter initialEntries={['/unknown']}>

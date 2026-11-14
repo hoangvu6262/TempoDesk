@@ -10,7 +10,7 @@ export class ErrorBoundary extends Component<
   render() {
     if (this.state.failed)
       return (
-        <main className="fallback" role="alert">
+        <main className="td-error-fallback" role="alert">
           <h1>Đã có lỗi xảy ra</h1>
           <p>Vui lòng tải lại trang để thử lại.</p>
           <a href="/">Về trang chủ</a>

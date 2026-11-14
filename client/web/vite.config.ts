@@ -29,7 +29,13 @@ export default defineConfig(({ mode }) => ({
     coverage: {
       provider: 'v8',
       reportsDirectory: '../../artifacts/frontend/coverage',
-      include: ['src/lib/**', 'src/config/**', 'src/app/**', 'src/App.tsx'],
+      include: [
+        'src/lib/**',
+        'src/config/**',
+        'src/app/**',
+        'src/ui/**',
+        'src/App.tsx',
+      ],
     },
   },
 }))

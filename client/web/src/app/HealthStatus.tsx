@@ -40,8 +40,12 @@ export function HealthStatus({ baseUrl }: { baseUrl: string }) {
     malformed: 'Phản hồi sức khỏe không hợp lệ',
   }
   return (
-    <div className={`health ${state}`} role="status" aria-live="polite">
-      <span className="status-dot" aria-hidden="true" />
+    <div
+      className={`td-health-status td-health-status--${state}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="td-health-status__dot" aria-hidden="true" />
       <div>
         <strong>{labels[state]}</strong>
         <p>Kiểm tra kết nối và trạng thái cơ sở dữ liệu.</p>
