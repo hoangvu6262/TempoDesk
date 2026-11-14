@@ -6,7 +6,9 @@ namespace TempoDesk.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 public sealed class PasswordResetController(
-    IAccountPasswordResetService resets) : ControllerBase
+    IAccountPasswordResetService resets,
+    IAuthenticationRateLimiter limiter,
+    IAuthenticationAuditService audit) : ControllerBase
 {
     private static readonly object GenericAcceptedResponse = new
     {
@@ -18,6 +20,15 @@ public sealed class PasswordResetController(
         ForgotPasswordRequestDto request,
         CancellationToken cancellationToken)
     {
+        var limited = await this.EnforceRateLimitAsync(
+            limiter,
+            audit,
+            AuthenticationRateLimitPolicy.ForgotPassword,
+            request.Email,
+            cancellationToken);
+        if (limited is not null)
+            return limited;
+
         await resets.ForgotPasswordAsync(request.Email, cancellationToken);
         return Accepted(GenericAcceptedResponse);
     }

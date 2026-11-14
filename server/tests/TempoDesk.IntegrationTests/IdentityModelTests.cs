@@ -80,6 +80,16 @@ public sealed class IdentityModelTests
         Assert.Equal("created_at", resetToken
             ?.FindProperty(nameof(PasswordResetToken.CreatedAt))?.GetColumnName());
 
+        var audit = model.FindEntityType(typeof(SecurityAuditLog));
+        Assert.Equal("ip_address", audit
+            ?.FindProperty(nameof(SecurityAuditLog.IpAddress))?.GetColumnName());
+        Assert.Equal("user_agent", audit
+            ?.FindProperty(nameof(SecurityAuditLog.UserAgent))?.GetColumnName());
+        Assert.Equal("trace_id", audit
+            ?.FindProperty(nameof(SecurityAuditLog.TraceId))?.GetColumnName());
+        Assert.Equal("metadata", audit
+            ?.FindProperty(nameof(SecurityAuditLog.Metadata))?.GetColumnName());
+
         Assert.Null(model.FindEntityType(typeof(IdentityRole<Guid>)));
 
         Assert.DoesNotContain(

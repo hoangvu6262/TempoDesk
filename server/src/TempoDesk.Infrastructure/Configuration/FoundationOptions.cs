@@ -25,6 +25,29 @@ public sealed class AuthenticationOptions
     public int RefreshTokenDays { get; set; } = 30;
 }
 
+public sealed class AuthenticationRateLimitOptions
+{
+    public int PermitLimit { get; set; }
+    public int WindowSeconds { get; set; }
+}
+
+public sealed class SecurityOptions
+{
+    public AuthenticationRateLimitOptions Register { get; set; } =
+        new() { PermitLimit = 5, WindowSeconds = 900 };
+    public AuthenticationRateLimitOptions LoginIp { get; set; } =
+        new() { PermitLimit = 30, WindowSeconds = 300 };
+    public AuthenticationRateLimitOptions LoginAccount { get; set; } =
+        new() { PermitLimit = 5, WindowSeconds = 300 };
+    public AuthenticationRateLimitOptions ForgotPasswordIp { get; set; } =
+        new() { PermitLimit = 20, WindowSeconds = 900 };
+    public AuthenticationRateLimitOptions ForgotPasswordAccount { get; set; } =
+        new() { PermitLimit = 3, WindowSeconds = 900 };
+    public AuthenticationRateLimitOptions Refresh { get; set; } =
+        new() { PermitLimit = 30, WindowSeconds = 60 };
+    public int AuditRetentionDays { get; set; } = 90;
+}
+
 public sealed class CorsOptions
 {
     public string[] AllowedOrigins { get; set; } = ["http://localhost:3000"];
@@ -74,6 +97,11 @@ public static class FoundationConfiguration
              Encoding.UTF8.GetByteCount(o.SigningKey) >= 32 &&
              o.AccessTokenMinutes is >= 1 and <= 60 &&
              o.RefreshTokenDays is >= 1 and <= 90));
+        Bind<SecurityOptions>("Security", o =>
+            ValidRate(o.Register) && ValidRate(o.LoginIp) &&
+            ValidRate(o.LoginAccount) && ValidRate(o.ForgotPasswordIp) &&
+            ValidRate(o.ForgotPasswordAccount) && ValidRate(o.Refresh) &&
+            o.AuditRetentionDays is >= 1 and <= 3650);
         Bind<CorsOptions>("Cors", o => o.AllowedOrigins.Length > 0 && o.AllowedOrigins.All(HttpUrl));
         Bind<JiraOptions>("Jira", o => !o.Enabled || (HttpUrl(o.BaseUrl) && !string.IsNullOrWhiteSpace(o.Token) && o.TimeoutSeconds is >= 1 and <= 300));
         Bind<EmailOptions>("Email", o => !o.Enabled ||
@@ -90,4 +118,7 @@ public static class FoundationConfiguration
 
     private static bool HttpUrl(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         uri.Scheme is "http" or "https" && string.IsNullOrEmpty(uri.UserInfo);
+
+    private static bool ValidRate(AuthenticationRateLimitOptions options) =>
+        options.PermitLimit > 0 && options.WindowSeconds is > 0 and <= 86400;
 }

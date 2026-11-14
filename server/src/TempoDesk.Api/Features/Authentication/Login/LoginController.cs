@@ -5,13 +5,22 @@ namespace TempoDesk.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class LoginController(IAccountLoginService login) : ControllerBase
+public sealed class LoginController(
+    IAccountLoginService login,
+    IAuthenticationRateLimiter limiter,
+    IAuthenticationAuditService audit) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login(
         LoginRequestDto request,
         CancellationToken cancellationToken)
     {
+        var limited = await this.EnforceRateLimitAsync(
+            limiter, audit, AuthenticationRateLimitPolicy.Login,
+            request.Email, cancellationToken);
+        if (limited is not null)
+            return limited;
+
         var userAgent = Request.Headers.UserAgent.ToString();
         var metadata = new SessionMetadata(
             string.IsNullOrWhiteSpace(userAgent)

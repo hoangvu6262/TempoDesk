@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -44,6 +45,12 @@ public sealed class PasswordResetIntegrationTests
         Assert.Equal(3L, await environment.CountAsync("""
             SELECT count(*) FROM public.security_audit_logs
             WHERE event_type = 'password.reset.requested'
+            """));
+        Assert.Equal(3L, await environment.CountAsync("""
+            SELECT count(*) FROM public.security_audit_logs
+            WHERE ip_address = '203.0.113.50'::inet
+              AND user_agent = 'TempoDesk Audit Test'
+              AND trace_id = '0123456789abcdef0123456789abcdef'
             """));
     }
 
@@ -146,6 +153,13 @@ public sealed class PasswordResetIntegrationTests
                 }));
             services.AddSingleton<TimeProvider>(clock);
             services.AddTempoDeskIdentity();
+            services.RemoveAll<SecurityAuditContext>();
+            services.AddSingleton(new SecurityAuditContext
+            {
+                IpAddress = IPAddress.Parse("203.0.113.50"),
+                UserAgent = "TempoDesk Audit Test",
+                TraceId = "0123456789abcdef0123456789abcdef"
+            });
             services.RemoveAll<IPasswordResetEmailSender>();
             services.AddSingleton<IPasswordResetEmailSender>(sender);
             return new TestEnvironment(
