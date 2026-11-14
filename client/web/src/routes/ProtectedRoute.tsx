@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import { Navigate, useLocation } from 'react-router'
-import { Spinner } from '../../../ui'
-import { useAuth } from '../state/AuthContext'
+import { useAuth } from '../features/auth/state/AuthContext'
+import { Spinner } from '../ui'
 
 export function ProtectedRoute({ children }: PropsWithChildren) {
   const { status } = useAuth()

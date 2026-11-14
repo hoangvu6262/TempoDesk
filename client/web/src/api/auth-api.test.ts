@@ -4,7 +4,7 @@ import type {
   InternalAxiosRequestConfig,
 } from 'axios'
 import { expect, it } from 'vitest'
-import { createApiClient } from '../../../lib/api'
+import { createApiClient } from '../lib/api'
 import { createAuthenticationApi } from './auth-api'
 
 function response(

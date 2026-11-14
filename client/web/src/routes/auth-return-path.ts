@@ -1,4 +1,4 @@
-const AUTH_PATHS = new Set([
+const AUTHENTICATION_PATHS = new Set([
   '/login',
   '/register',
   '/forgot-password',
@@ -26,7 +26,8 @@ export function safeReturnPath(
     return fallback
   }
 
-  return url.origin === window.location.origin && !AUTH_PATHS.has(url.pathname)
+  return url.origin === window.location.origin &&
+    !AUTHENTICATION_PATHS.has(url.pathname)
     ? `${url.pathname}${url.search}${url.hash}`
     : fallback
 }

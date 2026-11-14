@@ -137,11 +137,13 @@ distinguish an unknown email from an incorrect password.
 
 ## File boundaries
 
-- `src/features/auth/api` owns request and response contracts plus API calls.
+- `src/api` owns domain request and response contracts plus API calls.
 - `src/features/auth/state` owns the provider, auth hook, and refresh lifecycle.
-- `src/features/auth/routing` owns protected-route and return-path validation.
+- `src/routes` owns the application route table, protected-route boundary, and
+  return-path validation.
 - `src/features/auth/pages` owns route-level screens and their local form state.
-- `App.tsx` composes routes; `main.tsx` mounts the provider inside the router.
+- `App.tsx` renders `AppRoutes`; `main.tsx` mounts the provider inside the
+  router.
 
 These boundaries keep token lifecycle code out of forms and routing decisions
 out of the API layer. Shared UI components remain presentation-only.

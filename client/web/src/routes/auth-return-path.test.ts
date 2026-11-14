@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { safeReturnPath } from './auth-return-path'
 
-describe('safeReturnPath', () => {
+describe('safe return paths', () => {
   it.each(['/app', '/app?view=mine#today'])(
     'allows internal path %s',
     (path) => {

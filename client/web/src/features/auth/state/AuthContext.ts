@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { AuthenticationApi } from '../api/auth-api'
+import type { AuthenticationApi } from '../../../api/auth-api'
 
 export type AuthStatus = 'initializing' | 'authenticated' | 'anonymous'
 

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../lib/api'
-import type { AuthenticationApi } from '../api/auth-api'
+import type { AuthenticationApi } from '../../../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { VerifyEmailPage } from './VerifyEmailPage'
 

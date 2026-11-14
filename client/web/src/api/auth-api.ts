@@ -6,7 +6,9 @@ export type AccessTokenResponse = {
   expiresIn: number
 }
 
-export type AcceptedResponse = { message: string }
+export type AcceptedResponse = {
+  message: string
+}
 
 export type AuthenticationApi = {
   register(email: string, password: string): Promise<AcceptedResponse>

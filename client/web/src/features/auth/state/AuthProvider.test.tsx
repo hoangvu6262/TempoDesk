@@ -2,7 +2,10 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import type { AccessTokenResponse, AuthenticationApi } from '../api/auth-api'
+import type {
+  AccessTokenResponse,
+  AuthenticationApi,
+} from '../../../api/auth-api'
 import { AuthProvider } from './AuthProvider'
 import { useAuth } from './AuthContext'
 

@@ -12,7 +12,7 @@ import {
   createAuthenticationApi,
   type AccessTokenResponse,
   type AuthenticationApi,
-} from '../api/auth-api'
+} from '../../../api/auth-api'
 import { AuthContext, type AuthStatus } from './AuthContext'
 
 const REFRESH_EARLY_MS = 30_000

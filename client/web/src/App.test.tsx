@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest'
 import App from './App'
 import { ErrorBoundary } from './app/ErrorBoundary'
 import { ThemeProvider } from './ui'
-import type { AuthenticationApi } from './features/auth/api/auth-api'
+import type { AuthenticationApi } from './api/auth-api'
 import { AuthContext, type AuthStatus } from './features/auth/state/AuthContext'
 
 function matchMedia() {

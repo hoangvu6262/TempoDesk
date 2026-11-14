@@ -9,7 +9,7 @@ import {
   PasswordInput,
 } from '../../../ui'
 import { validateEmail, validatePassword } from '../forms/form-errors'
-import { safeReturnPath } from '../routing/auth-return-path'
+import { safeReturnPath } from '../../../routes/auth-return-path'
 import { useAuth } from '../state/AuthContext'
 import './AuthPages.scss'
 

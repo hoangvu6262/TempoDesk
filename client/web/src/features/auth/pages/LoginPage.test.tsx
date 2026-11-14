@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import type { AuthenticationApi } from '../api/auth-api'
+import type { AuthenticationApi } from '../../../api/auth-api'
 import { AuthContext } from '../state/AuthContext'
 import { LoginPage } from './LoginPage'
 

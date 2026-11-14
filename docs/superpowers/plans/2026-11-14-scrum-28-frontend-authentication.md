@@ -27,19 +27,20 @@
 
 Create the following focused units:
 
-- `client/web/src/features/auth/api/auth-api.ts`: auth request/response types and API adapter.
+- `client/web/src/api/auth-api.ts`: auth request/response types and API adapter.
 - `client/web/src/features/auth/forms/form-errors.ts`: client validation and Problem Details field mapping.
 - `client/web/src/features/auth/state/AuthContext.ts`: public auth state contract and hook.
 - `client/web/src/features/auth/state/AuthProvider.tsx`: in-memory token and refresh lifecycle.
-- `client/web/src/features/auth/routing/auth-return-path.ts`: return-path allow-list.
-- `client/web/src/features/auth/routing/ProtectedRoute.tsx`: initialization gate and anonymous redirect.
+- `client/web/src/routes/AppRoutes.tsx`: application route table.
+- `client/web/src/routes/auth-return-path.ts`: return-path allow-list.
+- `client/web/src/routes/ProtectedRoute.tsx`: initialization gate and anonymous redirect.
 - `client/web/src/features/auth/pages/*.tsx`: route-level auth screens.
 - `client/web/src/features/auth/pages/AuthPages.scss`: layout shared only by auth pages.
 - `client/web/src/app/AuthenticatedHome.tsx`: minimal private destination.
 
 Modify:
 
-- `client/web/src/App.tsx`: compose public auth routes and `/app` protection.
+- `client/web/src/App.tsx`: render the shared application route table.
 - `client/web/src/main.tsx`: mount `AuthProvider` inside `BrowserRouter`.
 - `client/web/vite.config.ts`: include `src/features/**` in coverage.
 
@@ -50,8 +51,8 @@ Keep tests beside each unit as `*.test.ts` or `*.test.tsx`.
 ### Task 1: Authentication API adapter
 
 **Files:**
-- Create: `client/web/src/features/auth/api/auth-api.ts`
-- Create: `client/web/src/features/auth/api/auth-api.test.ts`
+- Create: `client/web/src/api/auth-api.ts`
+- Create: `client/web/src/api/auth-api.test.ts`
 
 **Interfaces:**
 - Consumes: `AxiosInstance` returned by `createApiClient`.
@@ -108,7 +109,7 @@ it('uses the existing authentication contracts', async () => {
 
 - [ ] **Step 2: Run the test to verify RED**
 
-Run: `cd client/web && npm test -- src/features/auth/api/auth-api.test.ts`
+Run: `cd client/web && npm test -- src/api/auth-api.test.ts`
 
 Expected: FAIL because `auth-api.ts` does not exist.
 
@@ -158,14 +159,14 @@ export function createAuthenticationApi(client: AxiosInstance): AuthenticationAp
 
 - [ ] **Step 4: Run the focused tests to verify GREEN**
 
-Run: `cd client/web && npm test -- src/features/auth/api/auth-api.test.ts src/lib/api-client.test.ts`
+Run: `cd client/web && npm test -- src/api/auth-api.test.ts src/lib/api-client.test.ts`
 
 Expected: both files PASS.
 
 - [ ] **Step 5: Commit the adapter**
 
 ```bash
-git add client/web/src/features/auth/api
+git add client/web/src/api
 git commit -m "feat(auth): add frontend authentication API"
 ```
 
@@ -444,7 +445,7 @@ Expected: PASS with no unhandled promise warnings.
 
 - [ ] **Step 6: Run API and state tests together**
 
-Run: `cd client/web && npm test -- src/features/auth/api src/features/auth/state`
+Run: `cd client/web && npm test -- src/api src/features/auth/state`
 
 Expected: PASS.
 
@@ -460,10 +461,10 @@ git commit -m "feat(auth): manage frontend authentication state"
 ### Task 4: Protected routing and safe return paths
 
 **Files:**
-- Create: `client/web/src/features/auth/routing/auth-return-path.ts`
-- Create: `client/web/src/features/auth/routing/auth-return-path.test.ts`
-- Create: `client/web/src/features/auth/routing/ProtectedRoute.tsx`
-- Create: `client/web/src/features/auth/routing/ProtectedRoute.test.tsx`
+- Create: `client/web/src/routes/auth-return-path.ts`
+- Create: `client/web/src/routes/auth-return-path.test.ts`
+- Create: `client/web/src/routes/ProtectedRoute.tsx`
+- Create: `client/web/src/routes/ProtectedRoute.test.tsx`
 
 **Interfaces:**
 - Consumes: `useAuth()`, React Router location and navigation.
@@ -487,7 +488,7 @@ it.each([
 
 - [ ] **Step 2: Run the return-path test to verify RED**
 
-Run: `cd client/web && npm test -- src/features/auth/routing/auth-return-path.test.ts`
+Run: `cd client/web && npm test -- src/routes/auth-return-path.test.ts`
 
 Expected: FAIL because the helper does not exist.
 
@@ -517,7 +518,7 @@ export function safeReturnPath(value: string | null | undefined, fallback = '/ap
 
 - [ ] **Step 4: Run the allow-list test to verify GREEN**
 
-Run: `cd client/web && npm test -- src/features/auth/routing/auth-return-path.test.ts`
+Run: `cd client/web && npm test -- src/routes/auth-return-path.test.ts`
 
 Expected: PASS.
 
@@ -547,7 +548,7 @@ it('renders children for authenticated users', () => {
 
 - [ ] **Step 6: Run the protected-route tests to verify RED**
 
-Run: `cd client/web && npm test -- src/features/auth/routing/ProtectedRoute.test.tsx`
+Run: `cd client/web && npm test -- src/routes/ProtectedRoute.test.tsx`
 
 Expected: FAIL because `ProtectedRoute` does not exist.
 
@@ -570,14 +571,14 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
 
 - [ ] **Step 8: Run all routing tests to verify GREEN**
 
-Run: `cd client/web && npm test -- src/features/auth/routing`
+Run: `cd client/web && npm test -- src/routes`
 
 Expected: PASS.
 
 - [ ] **Step 9: Commit routing**
 
 ```bash
-git add client/web/src/features/auth/routing
+git add client/web/src/routes
 git commit -m "feat(auth): protect authenticated routes"
 ```
 

@@ -33,9 +33,11 @@ export default defineConfig(({ mode }) => ({
       reportsDirectory: '../../artifacts/frontend/coverage',
       include: [
         'src/lib/**',
+        'src/api/**',
         'src/config/**',
         'src/app/**',
         'src/features/**',
+        'src/routes/**',
         'src/ui/**',
         'src/App.tsx',
       ],

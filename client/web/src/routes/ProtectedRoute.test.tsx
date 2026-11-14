@@ -6,7 +6,7 @@ import {
   AuthContext,
   type AuthContextValue,
   type AuthStatus,
-} from '../state/AuthContext'
+} from '../features/auth/state/AuthContext'
 import { ProtectedRoute } from './ProtectedRoute'
 
 const api = {} as AuthenticationApi
