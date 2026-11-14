@@ -1,0 +1,85 @@
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-size-caption: 0.75rem;
+  --font-size-body: 0.875rem;
+  --font-size-label: 0.8125rem;
+  --font-size-heading-3: 1rem;
+  --font-size-heading-2: 1.25rem;
+  --font-size-heading-1: 1.75rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-tight: 1.25;
+  --line-height-body: 1.5;
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --radius-small: 0.25rem;
+  --radius-medium: 0.5rem;
+  --radius-large: 0.875rem;
+  --control-height-small: 2rem;
+  --control-height-medium: 2.5rem;
+  --icon-size-small: 1rem;
+  --icon-size-medium: 1.25rem;
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --color-background: #f6f8f8;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #edf3f2;
+  --color-text: #18302e;
+  --color-text-muted: #617472;
+  --color-border: #d6e0df;
+  --color-border-strong: #a9bab8;
+  --color-primary: #16766d;
+  --color-primary-hover: #115e57;
+  --color-primary-contrast: #ffffff;
+  --color-focus: #a85d00;
+  --color-danger: #b33b32;
+  --color-danger-subtle: #fbeceb;
+  --color-success: #247a5c;
+  --color-success-subtle: #e7f4ed;
+  --color-warning: #8a5a08;
+  --color-warning-subtle: #fbf1dc;
+  --color-info: #276b91;
+  --color-info-subtle: #e8f2f8;
+  --shadow-raised: 0 0.5rem 1.75rem rgb(20 58 54 / 8%);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-background: #101817;
+  --color-surface: #172220;
+  --color-surface-subtle: #21302e;
+  --color-text: #edf5f4;
+  --color-text-muted: #a5b9b6;
+  --color-border: #334642;
+  --color-border-strong: #58706c;
+  --color-primary: #58bdb1;
+  --color-primary-hover: #75cec4;
+  --color-primary-contrast: #0c2421;
+  --color-focus: #f3ad53;
+  --color-danger: #ff8d83;
+  --color-danger-subtle: #3b2221;
+  --color-success: #72d3a6;
+  --color-success-subtle: #1b352a;
+  --color-warning: #efc06c;
+  --color-warning-subtle: #392f1d;
+  --color-info: #7cc7ef;
+  --color-info-subtle: #1d303b;
+  --shadow-raised: 0 0.5rem 1.75rem rgb(0 0 0 / 28%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+  }
+}
