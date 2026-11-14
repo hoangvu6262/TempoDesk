@@ -86,6 +86,6 @@ describe('LoginPage', () => {
         name: 'Continue with Google — unavailable',
       }),
     ).toBeDisabled()
-    expect(screen.getByText(/Chưa khả dụng/)).toBeVisible()
+    expect(screen.getByText(/Unavailable/)).toBeVisible()
   })
 })

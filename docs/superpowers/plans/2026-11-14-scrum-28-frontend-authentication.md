@@ -778,7 +778,7 @@ it('logs in and returns to a safe requested route', async () => {
 it('keeps Google unavailable without starting OAuth', () => {
   renderLogin('/login')
   expect(screen.getByRole('button', { name: /Google/ })).toBeDisabled()
-  expect(screen.getByText('Chưa khả dụng')).toBeVisible()
+  expect(screen.getByText('Unavailable')).toBeVisible()
 })
 ```
 
@@ -797,7 +797,7 @@ registration minimum. Call `login`, then navigate with `replace: true` to
 field errors, display `Email or password is incorrect.`. Add links to
 `/forgot-password` and `/register`. Render a full-width secondary Google button
 with `disabled`, accessible name `Continue with Google — unavailable`, and
-visible `Chưa khả dụng` text. Give it no click handler.
+visible `Unavailable` text. Give it no click handler.
 
 The successful branch is:
 
@@ -821,7 +821,7 @@ The Google control is static:
   disabled
   aria-label="Continue with Google — unavailable"
 >
-  Continue with Google · Chưa khả dụng
+  Continue with Google · Unavailable
 </Button>
 ```
 

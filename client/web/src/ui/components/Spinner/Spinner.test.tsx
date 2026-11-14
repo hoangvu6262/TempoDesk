@@ -6,6 +6,6 @@ it('is decorative by default and named when a label is provided', () => {
   const { rerender } = render(<Spinner />)
   expect(screen.queryByRole('status')).not.toBeInTheDocument()
 
-  rerender(<Spinner label="Đang tải" />)
-  expect(screen.getByRole('status', { name: 'Đang tải' })).toBeVisible()
+  rerender(<Spinner label="Loading" />)
+  expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible()
 })

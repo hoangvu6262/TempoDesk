@@ -5,9 +5,9 @@ import { IconButton } from './IconButton'
 
 it('exposes its required accessible name', () => {
   render(
-    <IconButton aria-label="Đóng">
+    <IconButton aria-label="Close">
       <IconX />
     </IconButton>,
   )
-  expect(screen.getByRole('button', { name: 'Đóng' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Close' })).toBeVisible()
 })

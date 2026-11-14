@@ -78,6 +78,13 @@ it('handles invalid environment configuration gracefully', () => {
   vi.unstubAllEnvs()
 })
 
+it('renders the public landing page in English', () => {
+  renderApp('/', 'anonymous')
+  expect(screen.getByText('DEVELOPMENT WORKSPACE · SPRINT 0')).toBeVisible()
+  expect(screen.getByRole('link', { name: 'Skip to content' })).toBeVisible()
+  expect(screen.getByRole('link', { name: 'TempoDesk home' })).toBeVisible()
+})
+
 it.each([
   ['/register', 'Create your account'],
   ['/login', 'Sign in'],

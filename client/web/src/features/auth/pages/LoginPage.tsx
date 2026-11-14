@@ -100,7 +100,7 @@ export function LoginPage() {
             disabled
             aria-label="Continue with Google — unavailable"
           >
-            Continue with Google · Chưa khả dụng
+            Continue with Google · Unavailable
           </Button>
         </div>
       </form>

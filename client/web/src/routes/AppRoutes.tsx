@@ -30,21 +30,21 @@ function Landing() {
   return (
     <>
       <div className="td-landing__eyebrow">
-        KHÔNG GIAN PHÁT TRIỂN · SPRINT 0
+        DEVELOPMENT WORKSPACE · SPRINT 0
       </div>
       <h1 className="td-landing__title">
-        Nền tảng vững chắc.
+        A solid foundation.
         <br />
-        <span>Sẵn sàng cho nhịp làm việc mới.</span>
+        <span>Ready for a new rhythm of work.</span>
       </h1>
       <p className="td-landing__intro">
-        TempoDesk kết nối công việc, thời gian và đội nhóm trong một không gian.
-        Đây là điểm kiểm tra môi trường trước khi bắt đầu phát triển.
+        TempoDesk brings tasks, time, and teams together in one workspace. This
+        page verifies the environment before development begins.
       </p>
       <section className="td-landing__panel" aria-labelledby="health-heading">
         <div className="td-landing__panel-heading">
-          <h2 id="health-heading">Trạng thái hệ thống</h2>
-          <span className="td-landing__tag">MÔI TRƯỜNG PHÁT TRIỂN</span>
+          <h2 id="health-heading">System status</h2>
+          <span className="td-landing__tag">DEVELOPMENT ENVIRONMENT</span>
         </div>
         <HealthStatus baseUrl={config.apiBaseUrl} />
       </section>
@@ -52,18 +52,18 @@ function Landing() {
         className="td-landing__build-info"
         aria-labelledby="build-heading"
       >
-        <h2 id="build-heading">Thông tin bản dựng</h2>
+        <h2 id="build-heading">Build information</h2>
         <dl>
           <div>
-            <dt>Ứng dụng</dt>
+            <dt>Application</dt>
             <dd>TempoDesk Web · 0.0.0</dd>
           </div>
           <div>
-            <dt>Chế độ</dt>
+            <dt>Mode</dt>
             <dd>{import.meta.env.MODE}</dd>
           </div>
           <div>
-            <dt>Nền tảng</dt>
+            <dt>Platform</dt>
             <dd>React 19 · TypeScript · Vite</dd>
           </div>
         </dl>
@@ -76,10 +76,10 @@ function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="td-app-shell">
       <a className="td-skip-link" href="#main">
-        Chuyển đến nội dung
+        Skip to content
       </a>
       <header className="td-app-shell__header">
-        <Link className="td-brand" to="/" aria-label="TempoDesk trang chủ">
+        <Link className="td-brand" to="/" aria-label="TempoDesk home">
           <span className="td-brand__mark" aria-hidden="true">
             T
           </span>

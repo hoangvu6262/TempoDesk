@@ -92,20 +92,20 @@ export function UiKitPage() {
           Actions
         </Heading>
         <div className="td-ui-kit__row">
-          <Button startIcon={<IconPlus />}>Tạo công việc</Button>
+          <Button startIcon={<IconPlus />}>Create task</Button>
           <Button variant="secondary" endIcon={<IconArrowRight />}>
-            Tiếp tục
+            Continue
           </Button>
-          <Button variant="ghost">Bỏ qua</Button>
+          <Button variant="ghost">Skip</Button>
           <Button variant="danger" startIcon={<IconTrash />}>
-            Xóa
+            Delete
           </Button>
-          <Button loading>Đang lưu</Button>
-          <Button disabled>Đã tắt</Button>
-          <IconButton aria-label="Thông báo">
+          <Button loading>Saving</Button>
+          <Button disabled>Disabled</Button>
+          <IconButton aria-label="Notifications">
             <IconBell />
           </IconButton>
-          <IconButton aria-label="Đang xử lý" loading>
+          <IconButton aria-label="Processing" loading>
             <IconBell />
           </IconButton>
         </div>
@@ -116,7 +116,7 @@ export function UiKitPage() {
           Form controls
         </Heading>
         <div className="td-ui-kit__form-grid">
-          <FormField label="Email" description="Dùng email công việc">
+          <FormField label="Email" description="Use your work email">
             {(props) => (
               <Input {...props} type="email" placeholder="you@company.com" />
             )}
@@ -126,7 +126,7 @@ export function UiKitPage() {
               <Input {...props} type="email" defaultValue="invalid" />
             )}
           </FormField>
-          <FormField label="Mật khẩu" required>
+          <FormField label="Password" required>
             {(props) => <PasswordInput {...props} />}
           </FormField>
           <FormField label="Disabled field">
@@ -138,7 +138,7 @@ export function UiKitPage() {
         <Checkbox
           checked={checked}
           onCheckedChange={setChecked}
-          label="Ghi nhớ lựa chọn"
+          label="Remember preference"
         />
       </section>
 
@@ -147,19 +147,19 @@ export function UiKitPage() {
           Feedback
         </Heading>
         <div className="td-ui-kit__stack">
-          <Alert title="Thông tin">Cập nhật mới đã sẵn sàng.</Alert>
-          <Alert variant="success" title="Thành công">
-            Thay đổi đã được lưu.
+          <Alert title="Information">A new update is available.</Alert>
+          <Alert variant="success" title="Success">
+            Changes have been saved.
           </Alert>
-          <Alert variant="warning" title="Lưu ý">
-            Phiên làm việc sắp hết hạn.
+          <Alert variant="warning" title="Warning">
+            Your session is about to expire.
           </Alert>
           <Alert variant="error" title="Error">
             Unable to complete the action.
           </Alert>
           <div className="td-ui-kit__row">
-            <Spinner size="small" label="Đang tải nhỏ" />
-            <Spinner label="Đang tải" />
+            <Spinner size="small" label="Loading small" />
+            <Spinner label="Loading" />
           </div>
         </div>
       </section>
@@ -173,15 +173,15 @@ export function UiKitPage() {
         </Heading>
         <div className="td-ui-kit__auth-preview">
           <AuthLayout
-            title="Đăng nhập"
-            description="Tiếp tục với tài khoản TempoDesk"
-            footer={<a href="/privacy">Quyền riêng tư</a>}
+            title="Sign in"
+            description="Continue with your TempoDesk account"
+            footer={<a href="/privacy">Privacy</a>}
           >
-            <form className="td-ui-kit__stack" aria-label="Đăng nhập mẫu">
+            <form className="td-ui-kit__stack" aria-label="Sign-in example">
               <FormField label="Email">
                 {(props) => <Input {...props} type="email" />}
               </FormField>
-              <Button fullWidth>Tiếp tục</Button>
+              <Button fullWidth>Continue</Button>
             </form>
           </AuthLayout>
         </div>

@@ -44,7 +44,7 @@ features.
   with a resend-verification email form.
 - `/login` contains email and password fields. A successful login navigates to
   the validated `returnTo` query value or `/app` by default. The Google button
-  is disabled and labelled `Chưa khả dụng` through visible supporting text.
+  is disabled and labelled `Unavailable` through visible supporting text.
 - `/forgot-password` accepts an email and always presents the neutral response
   returned by the API.
 - `/reset-password?token=...` accepts a new password and confirmation. A

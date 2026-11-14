@@ -11,7 +11,7 @@ function baseUrl(
   const input = value ?? fallback
   const invalid = () =>
     new Error(
-      `${name} phải là URL HTTP(S) hoặc đường dẫn bắt đầu bằng một dấu /.`,
+      `${name} must be an HTTP(S) URL or a path beginning with one slash.`,
     )
   if (!input || /[\s\\?#%]/.test(input)) throw invalid()
   if (input.startsWith('/') && !input.startsWith('//')) {

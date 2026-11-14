@@ -31,10 +31,10 @@ describe('client environment', () => {
     '/%2f/evil',
   ])('rejects unsafe config without leaking its value: %s', (value) => {
     expect(() => readClientConfig({ VITE_API_BASE_URL: value })).toThrow(
-      'VITE_API_BASE_URL phải là',
+      'VITE_API_BASE_URL must be',
     )
     expect(() => readClientConfig({ VITE_SIGNALR_BASE_URL: value })).toThrow(
-      'VITE_SIGNALR_BASE_URL phải là',
+      'VITE_SIGNALR_BASE_URL must be',
     )
   })
 })
