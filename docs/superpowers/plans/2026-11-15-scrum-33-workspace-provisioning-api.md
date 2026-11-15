@@ -137,31 +137,39 @@ Run, substituting `.env`'s `POSTGRES_DB` value if it is not `tempodesk`:
 
 ```bash
 docker compose exec -T postgres psql -U postgres -d tempodesk -v ON_ERROR_STOP=1 <<'SQL'
-SELECT CASE WHEN EXISTS (
-    SELECT 1
-    FROM public.users AS users
-    LEFT JOIN public.workspaces AS workspace
-      ON workspace.owner_user_id = users.id
-     AND workspace.type = 'personal'
-    GROUP BY users.id
-    HAVING count(workspace.id) <> 1
-) THEN 1 / 0 ELSE 1 END AS every_user_has_one_personal_workspace;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.users AS users
+        LEFT JOIN public.workspaces AS workspace
+          ON workspace.owner_user_id = users.id
+         AND workspace.type = 'personal'
+        GROUP BY users.id
+        HAVING count(workspace.id) <> 1
+    ) THEN
+        RAISE EXCEPTION 'a user does not have exactly one Personal Workspace';
+    END IF;
 
-SELECT CASE WHEN EXISTS (
-    SELECT 1
-    FROM public.workspaces AS workspace
-    LEFT JOIN public.workspace_members AS member
-      ON member.workspace_id = workspace.id
-     AND member.user_id = workspace.owner_user_id
-     AND member.role = 'owner'
-     AND member.removed_at IS NULL
-    WHERE workspace.type = 'personal'
-      AND member.id IS NULL
-) THEN 1 / 0 ELSE 1 END AS every_personal_workspace_has_owner;
+    IF EXISTS (
+        SELECT 1
+        FROM public.workspaces AS workspace
+        LEFT JOIN public.workspace_members AS member
+          ON member.workspace_id = workspace.id
+         AND member.user_id = workspace.owner_user_id
+         AND member.role = 'owner'
+         AND member.removed_at IS NULL
+        WHERE workspace.type = 'personal'
+          AND member.id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'a Personal Workspace lacks an active Owner';
+    END IF;
+END;
+$$;
 SQL
 ```
 
-Expected: both rows contain `1` and the command exits `0`.
+Expected: the command emits `DO` and exits `0`.
 
 - [ ] **Step 5: Commit the migration**
 
@@ -1084,24 +1092,37 @@ curl --fail-with-body -sS \
   http://localhost:5023/api/auth/register
 
 docker compose exec -T postgres psql -U postgres -d tempodesk -v ON_ERROR_STOP=1 <<'SQL'
-SELECT CASE WHEN count(*) = 1 THEN 1 ELSE 1 / 0 END
-FROM public.workspaces AS workspace
-JOIN public.users AS users ON users.id = workspace.owner_user_id
-WHERE users.normalized_email = 'SCRUM33-A@EXAMPLE.TEST'
-  AND workspace.type = 'personal';
+DO $$
+BEGIN
+    IF (
+        SELECT count(*)
+        FROM public.workspaces AS workspace
+        JOIN public.users AS users ON users.id = workspace.owner_user_id
+        WHERE users.normalized_email = 'SCRUM33-A@EXAMPLE.TEST'
+          AND workspace.type = 'personal'
+    ) <> 1 THEN
+        RAISE EXCEPTION 'repeated provisioning changed Personal Workspace count';
+    END IF;
 
-SELECT CASE WHEN count(*) = 1 THEN 1 ELSE 1 / 0 END
-FROM public.workspace_members AS member
-JOIN public.workspaces AS workspace ON workspace.id = member.workspace_id
-JOIN public.users AS users ON users.id = member.user_id
-WHERE users.normalized_email = 'SCRUM33-A@EXAMPLE.TEST'
-  AND workspace.type = 'personal'
-  AND member.role = 'owner'
-  AND member.removed_at IS NULL;
+    IF (
+        SELECT count(*)
+        FROM public.workspace_members AS member
+        JOIN public.workspaces AS workspace
+          ON workspace.id = member.workspace_id
+        JOIN public.users AS users ON users.id = member.user_id
+        WHERE users.normalized_email = 'SCRUM33-A@EXAMPLE.TEST'
+          AND workspace.type = 'personal'
+          AND member.role = 'owner'
+          AND member.removed_at IS NULL
+    ) <> 1 THEN
+        RAISE EXCEPTION 'repeated provisioning changed Owner membership count';
+    END IF;
+END;
+$$;
 SQL
 ```
 
-Expected: both queries return `1`.
+Expected: the command emits `DO` and exits `0`.
 
 - [ ] **Step 8: Remove only smoke-test data**
 
