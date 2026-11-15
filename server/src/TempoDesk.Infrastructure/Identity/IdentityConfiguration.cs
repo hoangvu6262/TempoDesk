@@ -102,6 +102,8 @@ public static class IdentityConfiguration
         services.TryAddScoped<IPasswordResetEmailSender,
             SmtpPasswordResetEmailSender>();
         services.AddScoped<PersonalWorkspaceProvisioner>();
+        services.AddScoped<IWorkspaceAuthorizationService,
+            WorkspaceAuthorizationService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
