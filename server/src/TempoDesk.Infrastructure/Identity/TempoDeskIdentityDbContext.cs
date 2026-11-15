@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TempoDesk.Application.Authentication;
+using TempoDesk.Infrastructure.Workspaces.Persistence;
 
 namespace TempoDesk.Infrastructure.Identity;
 
@@ -21,6 +22,11 @@ public sealed class TempoDeskIdentityDbContext(
     public DbSet<SecurityAuditLog> SecurityAuditLogs =>
         Set<SecurityAuditLog>();
 
+    public DbSet<Workspace> Workspaces => Set<Workspace>();
+    public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
+    public DbSet<WorkspaceInvitation> WorkspaceInvitations =>
+        Set<WorkspaceInvitation>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -33,6 +39,7 @@ public sealed class TempoDeskIdentityDbContext(
         ConfigurePasswordResetTokens(builder);
         ConfigureEmailVerificationTokens(builder);
         ConfigureSecurityAuditLogs(builder);
+        WorkspacePersistenceConfiguration.Configure(builder);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
