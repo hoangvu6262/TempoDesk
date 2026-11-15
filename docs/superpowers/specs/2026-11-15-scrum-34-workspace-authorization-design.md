@@ -129,31 +129,23 @@ the Team Workspace and its Owner membership atomically.
   claim or cached client state can preserve access.
 - Corrupt or unrecognized persisted roles fail closed.
 
-## Testing
+## Verification
 
-Application tests cover every role/action combination in the fixed matrix and
-explicitly verify default-deny behavior. Focused tests cover the sensitive
-Admin restrictions: Admin cannot invite or promote Admin, change or remove an
-Admin, or transfer ownership.
+The repository intentionally removed its server test projects in commit
+`b231748`. SCRUM-37 owns restoring the minimum Sprint 2 API and integration test
+infrastructure and adding automated coverage for the complete workspace role
+matrix, removed memberships, and cross-workspace isolation. SCRUM-34 does not
+restore that infrastructure early.
 
-Infrastructure or integration tests verify that the authorization service:
-
-- allows an action supported by an active membership;
-- returns `Forbidden` for an active membership without the action;
-- returns the same `NotFound` result for missing, removed, and cross-workspace
-  memberships;
-- returns the effective role stored in the database;
-- denies unknown persisted roles.
-
-Workspace endpoint or service regression tests verify list, read, and rename
-use the centralized policy and preserve the documented HTTP behavior.
-
-Final verification runs:
+This ticket follows its documented verification command:
 
 ```bash
-dotnet test server/TempoDesk.sln
 dotnet build server/TempoDesk.sln
 ```
+
+The permission matrix is kept as a pure, deterministic Application policy so
+SCRUM-37 can cover it without a database or HTTP host when test infrastructure
+is restored.
 
 ## Out of Scope
 
