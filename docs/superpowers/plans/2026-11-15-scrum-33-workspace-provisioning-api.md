@@ -826,7 +826,7 @@ public sealed class WorkspacesController(
         }
     }
 
-    private IActionResult? ValidateName(
+    private ActionResult? ValidateName(
         string? name,
         out string normalized)
     {
