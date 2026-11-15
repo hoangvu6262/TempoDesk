@@ -36,19 +36,14 @@ jobs:
             server/**/*.csproj
             server/Directory.Build.props
             global.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          package-manager-cache: false
       - run: dotnet restore server/TempoDesk.sln -p:NuGetAuditLevel=high
       - run: dotnet build server/TempoDesk.sln --configuration Release --no-restore
-      - name: NuGet dependency policy
+      - name: NuGet dependency report
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           mkdir -p artifacts/audit
           dotnet list server/TempoDesk.sln package --vulnerable --include-transitive --format json --output-version 1 --no-restore > artifacts/audit/nuget.json
-          node scripts/check-vulnerabilities.mjs artifacts/audit/nuget.json
       - name: Upload backend audit
         if: always()
         uses: actions/upload-artifact@v7

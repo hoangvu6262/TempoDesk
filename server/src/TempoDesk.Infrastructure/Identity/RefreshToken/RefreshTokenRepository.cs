@@ -132,6 +132,7 @@ internal sealed class RefreshTokenRepository(
 
     public async Task<IReadOnlyList<AuthenticationSession>> ListSessionsAsync(
         Guid userId,
+        string? currentTokenHash,
         DateTimeOffset now,
         CancellationToken cancellationToken = default)
     {
@@ -141,6 +142,7 @@ internal sealed class RefreshTokenRepository(
             .Select(token => new
             {
                 token.FamilyId,
+                token.TokenHash,
                 token.UserAgent,
                 token.IpAddress,
                 token.CreatedAt,
@@ -175,7 +177,11 @@ internal sealed class RefreshTokenRepository(
                         ? AuthenticationSessionStatus.Active
                         : allRevoked
                             ? AuthenticationSessionStatus.Revoked
-                            : AuthenticationSessionStatus.Expired);
+                            : AuthenticationSessionStatus.Expired,
+                    currentTokenHash is not null && family.Any(row =>
+                        row.TokenHash == currentTokenHash &&
+                        row.RevokedAt is null &&
+                        row.ExpiresAt > now));
             })
             .OrderByDescending(session => session.LastUsedAt)
             .ToArray();

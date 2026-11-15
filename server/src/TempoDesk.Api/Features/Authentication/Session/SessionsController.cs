@@ -15,7 +15,10 @@ public sealed class SessionsController(
     public async Task<IActionResult> List(
         CancellationToken cancellationToken)
     {
-        var result = await sessions.ListAsync(UserId(), cancellationToken);
+        var result = await sessions.ListAsync(
+            UserId(),
+            RefreshTokenCookie.Read(Request),
+            cancellationToken);
         return Ok(result.Select(session => new SessionResponseDto(
             session.Id,
             session.UserAgent,
@@ -23,7 +26,8 @@ public sealed class SessionsController(
             session.CreatedAt,
             session.LastUsedAt,
             session.ExpiresAt,
-            session.Status.ToString().ToLowerInvariant())));
+            session.Status.ToString().ToLowerInvariant(),
+            session.IsCurrent)));
     }
 
     [HttpDelete("{id:guid}")]

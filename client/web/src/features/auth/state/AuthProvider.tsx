@@ -50,11 +50,13 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
   const refreshRef = useRef<() => Promise<void>>(async () => {})
   const initializedRef = useRef(false)
   const activeRef = useRef(true)
+  const sessionGenerationRef = useRef(0)
   const [status, setStatus] = useState<AuthStatus>('initializing')
   const [runtime] = useState(() => createAuthRuntime(api))
   const authApi = runtime.api
 
   const clearSession = useCallback(() => {
+    sessionGenerationRef.current += 1
     runtime.setAccessToken(null)
     window.clearTimeout(timerRef.current)
     timerRef.current = undefined
@@ -80,10 +82,15 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
 
   const runRefresh = useCallback(() => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current
+    const generation = sessionGenerationRef.current
     const request = authApi
       .refresh()
-      .then(applyToken)
-      .catch(clearSession)
+      .then((result) => {
+        if (sessionGenerationRef.current === generation) applyToken(result)
+      })
+      .catch(() => {
+        if (sessionGenerationRef.current === generation) clearSession()
+      })
       .finally(() => {
         refreshPromiseRef.current = null
       })
@@ -109,7 +116,9 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      applyToken(await authApi.login(email, password))
+      const result = await authApi.login(email, password)
+      sessionGenerationRef.current += 1
+      applyToken(result)
     },
     [applyToken, authApi],
   )

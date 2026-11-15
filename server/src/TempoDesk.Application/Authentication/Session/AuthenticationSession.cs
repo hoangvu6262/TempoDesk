@@ -7,4 +7,5 @@ public sealed record AuthenticationSession(
     DateTimeOffset CreatedAt,
     DateTimeOffset LastUsedAt,
     DateTimeOffset ExpiresAt,
-    AuthenticationSessionStatus Status);
+    AuthenticationSessionStatus Status,
+    bool IsCurrent);

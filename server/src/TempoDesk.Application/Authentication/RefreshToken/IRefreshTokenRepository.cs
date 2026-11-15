@@ -26,6 +26,7 @@ public interface IRefreshTokenRepository
 
     Task<IReadOnlyList<AuthenticationSession>> ListSessionsAsync(
         Guid userId,
+        string? currentTokenHash,
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 
