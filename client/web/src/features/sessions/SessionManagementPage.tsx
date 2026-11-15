@@ -63,6 +63,13 @@ export function SessionManagementPage() {
           ) ?? null,
       )
       setSuccess('Session revoked successfully.')
+      try {
+        setSessions(await api.listSessions())
+      } catch {
+        setActionError(
+          'Session revoked, but the latest session list could not be loaded.',
+        )
+      }
     } catch {
       setActionError('Unable to revoke the session. Please try again.')
     } finally {
