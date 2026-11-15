@@ -39,6 +39,7 @@
 - Create `server/src/TempoDesk.Api/Features/Workspaces/WorkspaceRequestDtos.cs`: create and rename request DTOs.
 - Create `server/src/TempoDesk.Api/Features/Workspaces/WorkspaceResponseDto.cs`: public workspace DTO.
 - Create `server/src/TempoDesk.Api/Features/Workspaces/WorkspacesController.cs`: four authenticated endpoints and Problem Details translation.
+- Modify `server/src/TempoDesk.Api/Program.cs`: preserve endpoint-specific Problem Details while retaining the generic fallback.
 
 ### Task 1: Backfill Personal Workspaces for existing users
 
@@ -686,6 +687,7 @@ git commit -m "feat(workspaces): implement workspace operations"
 - Create: `server/src/TempoDesk.Api/Features/Workspaces/WorkspaceRequestDtos.cs`
 - Create: `server/src/TempoDesk.Api/Features/Workspaces/WorkspaceResponseDto.cs`
 - Create: `server/src/TempoDesk.Api/Features/Workspaces/WorkspacesController.cs`
+- Modify: `server/src/TempoDesk.Api/Program.cs`
 
 **Interfaces:**
 
@@ -853,6 +855,13 @@ public sealed class WorkspacesController(
 
 - [ ] **Step 3: Build the complete server solution**
 
+Before building, change the Problem Details customization in `Program.cs` so
+the generic detail does not overwrite an endpoint-specific detail:
+
+```csharp
+context.ProblemDetails.Detail ??= "The request could not be completed.";
+```
+
 Run:
 
 ```bash
@@ -864,7 +873,9 @@ Expected: build succeeds with `0 Warning(s)` and `0 Error(s)`.
 - [ ] **Step 4: Commit the endpoints**
 
 ```bash
-git add server/src/TempoDesk.Api/Features/Workspaces
+git add \
+  server/src/TempoDesk.Api/Features/Workspaces \
+  server/src/TempoDesk.Api/Program.cs
 git commit -m "feat(api): add workspace endpoints"
 ```
 

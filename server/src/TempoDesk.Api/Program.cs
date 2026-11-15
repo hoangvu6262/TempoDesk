@@ -25,7 +25,7 @@ builder.Services.AddControllers();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
     context.ProblemDetails.Type = $"https://httpstatuses.com/{context.ProblemDetails.Status}";
-    context.ProblemDetails.Detail = "The request could not be completed.";
+    context.ProblemDetails.Detail ??= "The request could not be completed.";
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 builder.Services.AddCors();
