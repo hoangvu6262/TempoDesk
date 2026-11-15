@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { Link, Route, Routes } from 'react-router'
-import { AuthenticatedHome } from '../app/AuthenticatedHome'
 import { HealthStatus } from '../app/HealthStatus'
 import { UiKitPage } from '../app/UiKitPage'
 import { readClientConfig } from '../config/env'
@@ -10,6 +9,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage'
+import { SessionManagementPage } from '../features/sessions/SessionManagementPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 function Landing() {
@@ -126,7 +126,7 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <AuthenticatedHome />
+              <SessionManagementPage />
             </AppShell>
           </ProtectedRoute>
         }
