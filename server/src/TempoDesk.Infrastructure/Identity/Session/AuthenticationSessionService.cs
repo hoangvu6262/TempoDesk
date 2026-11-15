@@ -20,9 +20,15 @@ internal sealed class AuthenticationSessionService(
 
     public Task<IReadOnlyList<AuthenticationSession>> ListAsync(
         Guid userId,
+        string rawToken,
         CancellationToken cancellationToken = default) =>
         refreshTokens.ListSessionsAsync(
-            userId, timeProvider.GetUtcNow(), cancellationToken);
+            userId,
+            string.IsNullOrEmpty(rawToken) || rawToken.Length > 512
+                ? null
+                : Hash(rawToken),
+            timeProvider.GetUtcNow(),
+            cancellationToken);
 
     public Task<bool> RevokeAsync(
         Guid userId,

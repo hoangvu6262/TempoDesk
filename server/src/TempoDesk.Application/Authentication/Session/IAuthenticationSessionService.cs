@@ -8,6 +8,7 @@ public interface IAuthenticationSessionService
 
     Task<IReadOnlyList<AuthenticationSession>> ListAsync(
         Guid userId,
+        string rawToken,
         CancellationToken cancellationToken = default);
 
     Task<bool> RevokeAsync(

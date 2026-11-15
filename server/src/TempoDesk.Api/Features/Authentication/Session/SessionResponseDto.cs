@@ -7,4 +7,5 @@ public sealed record SessionResponseDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset LastUsedAt,
     DateTimeOffset ExpiresAt,
-    string Status);
+    string Status,
+    bool IsCurrent);
