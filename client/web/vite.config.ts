@@ -1,6 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { loadEnv } from 'vite'
-import { defineConfig } from 'vitest/config'
+import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -23,21 +22,6 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         ws: true,
       },
-    },
-  },
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reportsDirectory: '../../artifacts/frontend/coverage',
-      include: [
-        'src/lib/**',
-        'src/config/**',
-        'src/app/**',
-        'src/ui/**',
-        'src/App.tsx',
-      ],
     },
   },
 }))

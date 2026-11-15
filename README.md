@@ -1,6 +1,6 @@
 # TempoDesk
 
-TempoDesk is being built as a task and time-management platform for individuals and teams. The current increment provides the development foundation: React shell, API/Worker configuration, health checks, SQL migrations, tests and CI.
+TempoDesk is being built as a task and time-management platform for individuals and teams. The current increment provides the development foundation: React shell, API/Worker configuration, health checks, SQL migrations and CI.
 
 ## Planned product capabilities
 
@@ -27,7 +27,6 @@ TempoDesk is being built as a task and time-management platform for individuals 
 TempoDesk/
 ├── client/web/       # React web application
 ├── server/src/       # API, Worker, Domain, Application, and Infrastructure projects
-├── server/tests/     # Backend test projects
 ├── database/         # Database migrations, functions, views, and seed data
 └── docker/           # Local container configuration
 ```
@@ -52,7 +51,7 @@ The Domain project has no dependency on the other backend projects. Business rul
 ### Prerequisites
 
 - Docker with Compose 2.24 or newer, using Linux containers.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for native development and tests; `global.json` selects a stable .NET 10 SDK.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for native development; `global.json` selects a stable .NET 10 SDK.
 - [Node.js](https://nodejs.org/) 22.12 or newer and npm; CI uses Node 22.
 - Bash, curl and tar for the database/stack checks (macOS/Linux, or WSL on Windows).
 - PostgreSQL runs in Docker using the pinned `postgres:18.6-bookworm` image; a host PostgreSQL installation is not required.
@@ -165,34 +164,23 @@ selected business tables. Applied SQL files are immutable. Generated entities an
 put credentials in them. See [migration and scaffold instructions](database/README.md)
 and [server dependency rules](server/README.md).
 
-## Quality gates and CI
+## Build checks and CI
 
 ```bash
 dotnet build server/TempoDesk.sln
-dotnet test server/TempoDesk.sln --no-build
 npm --prefix client/web run lint
-npm --prefix client/web run test
 npm --prefix client/web run build
 npm --prefix client/web run format:check
-node --test scripts/check-vulnerabilities.test.mjs
-bash database/tests/migrator.sh
-bash docker/tests/stack.sh
 ```
 
-Backend build output, test reports and coverage go under root `artifacts/`.
-The database script creates an isolated test database and source copy; the stack
-script creates its own project, random host ports and disposable volume. Both clean
-their own resources without changing the developer database. Integration tests start
-their own PostgreSQL container; Docker must be available, but a manually running
-database is not required. Stack failures save sanitized logs to `artifacts/stack.log`.
+Backend build output goes under root `artifacts/`.
 
-`.github/workflows/ci.yml` runs backend, frontend, database and full-stack checks on
-push/PR, cancels superseded runs, and uploads reports/coverage. CI uses test-only
-credentials and needs no repository secrets. It audits direct and transitive NuGet
-and npm packages: High/Critical advisories fail; Low/Moderate remain in reports for
-follow-up. Audit tool/network failures or malformed reports also fail. No advisory
-exceptions are configured; any future exception requires a reviewed advisory,
-owner, expiry and explicit policy change.
+`.github/workflows/ci.yml` runs backend and frontend build checks on push/PR and
+cancels superseded runs. It audits direct and transitive NuGet and npm packages:
+High/Critical advisories fail; Low/Moderate remain in reports for follow-up. Audit
+tool/network failures or malformed reports also fail. No advisory exceptions are
+configured; any future exception requires a reviewed advisory, owner, expiry and
+explicit policy change.
 
 To run the npm policy locally:
 

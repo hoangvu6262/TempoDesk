@@ -36,7 +36,7 @@ export function FormField({
             <span className="td-form-field__required" aria-hidden="true">
               *
             </span>
-            <span className="td-visually-hidden"> bắt buộc</span>
+            <span className="td-visually-hidden">, required</span>
           </>
         )}
       </label>

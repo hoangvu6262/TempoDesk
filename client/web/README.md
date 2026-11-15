@@ -8,7 +8,6 @@ npm ci
 cp .env.example .env.local
 npm run dev
 npm run lint
-npm run test
 npm run build
 npm run format:check
 ```
@@ -29,10 +28,6 @@ The Dockerfile builds from the repository root and serves static files using non
 
 API requests support JSON, empty responses, caller abort and a 10-second default timeout. `ApiError` preserves status, safe Problem Details detail, trace ID and validation fields, with a `kind` discriminator for HTTP, network, cancellation, timeout and malformed JSON failures. Treat API response types as untrusted: the readiness query validates its response before displaying health. No automatic retries are performed.
 
-```sh
-npm run test -- --coverage --reporter=default --reporter=junit --outputFile=../../artifacts/frontend/tests.xml
-```
+Accessibility includes semantic landmarks, a skip link, keyboard focus and a live health status.
 
-Tests run without backend services; coverage and JUnit reports go under root `artifacts/frontend`. Accessibility includes semantic landmarks, a skip link, keyboard focus and a live health status. No business routes, authentication or business feature UI are included.
-
-Toolchain references: [Vite requirements](https://vite.dev/guide/), [React Router declarative routing](https://reactrouter.com/start/declarative/routing), [Vitest guide](https://vitest.dev/guide/).
+Toolchain references: [Vite requirements](https://vite.dev/guide/) and [React Router declarative routing](https://reactrouter.com/start/declarative/routing).

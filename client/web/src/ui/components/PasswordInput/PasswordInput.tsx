@@ -13,8 +13,8 @@ export type PasswordInputProps = Omit<
 }
 
 export function PasswordInput({
-  showPasswordLabel = 'Hiện mật khẩu',
-  hidePasswordLabel = 'Ẩn mật khẩu',
+  showPasswordLabel = 'Show password',
+  hidePasswordLabel = 'Hide password',
   className,
   disabled,
   ...props

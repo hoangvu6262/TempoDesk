@@ -10,6 +10,7 @@ import { BrowserRouter } from 'react-router'
 import { ErrorBoundary } from './app/ErrorBoundary'
 import { ThemeProvider } from './ui/theme/ThemeProvider'
 import { applyInitialTheme } from './ui/theme/theme'
+import { AuthProvider } from './features/auth/state/AuthProvider'
 
 applyInitialTheme()
 
@@ -18,7 +19,9 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <ThemeProvider>
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </BrowserRouter>
       </ThemeProvider>
     </ErrorBoundary>

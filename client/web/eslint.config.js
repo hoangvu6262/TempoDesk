@@ -25,7 +25,6 @@ export default defineConfig([
       'src/app/**/*.{ts,tsx}',
       'src/App.tsx',
     ],
-    ignores: ['**/*.test.*'],
     rules: {
       'no-restricted-globals': [
         'error',

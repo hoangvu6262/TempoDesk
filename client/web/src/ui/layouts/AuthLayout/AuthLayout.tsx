@@ -17,11 +17,7 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   return (
     <main className="td-auth-layout">
-      <a
-        className="td-auth-layout__brand"
-        href="/"
-        aria-label="TempoDesk trang chủ"
-      >
+      <a className="td-auth-layout__brand" href="/" aria-label="TempoDesk home">
         <span className="td-auth-layout__brand-mark" aria-hidden="true">
           T
         </span>

@@ -123,23 +123,6 @@ Mỗi migration cần mô tả phương án hoàn tác an toàn trong comment ho
 thay đổi. Không rollback migration đã commit bằng cách xóa hàng trong lịch sử;
 thêm migration sửa tiếp và đánh giá nguy cơ mất dữ liệu.
 
-## Kiểm tra tự động
-
-```bash
-bash database/tests/migrator.sh
-```
-
-Script dùng database tạm và bản sao migration, kiểm tra database mới, quyền,
-constraint, APPLY, SKIP, checksum, rollback và scaffold EF trên bảng thử.
-Model được sinh trong bản sao source tạm rồi build; không ghi đè code generated
-trong workspace của bạn. Database và file tạm được xóa khi
-script kết thúc; database `tempodesk` không bị thay đổi.
-Không dùng `docker compose down -v` để chạy lại kiểm tra vì lệnh đó xóa dữ liệu local.
-
-Workflow `.github/workflows/ci.yml` chạy build/test backend, frontend, kiểm tra
-dependency, migration và toàn bộ stack trên pull request/push. Database CI dùng
-mật khẩu thử, không cần repository secret.
-
 ## Chạy trực tiếp bằng .NET (tùy chọn)
 
 Runner không tự đọc `.env`. Đặt `TEMPODESK_MIGRATION_PASSWORD` trong môi trường

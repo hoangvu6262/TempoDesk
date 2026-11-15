@@ -1,0 +1,33 @@
+.td-auth-form {
+  display: grid;
+  gap: var(--space-4);
+
+  &__actions {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  &__links {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--font-size-caption);
+  }
+}
+
+.td-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+
+  &::before,
+  &::after {
+    height: 1px;
+    flex: 1;
+    background: var(--color-border);
+    content: '';
+  }
+}
