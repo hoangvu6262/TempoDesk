@@ -69,7 +69,7 @@ to its memberships and invitations, so no dependent row becomes orphaned.
 - `email varchar(256)` and `normalized_email varchar(256)` required.
 - `role varchar(20)` restricted to `admin`, `member`, or `viewer`; ownership is
   transferred through a separate operation rather than an invitation.
-- `token_hash varchar(128)` required and globally unique. No raw invitation
+- `token_hash varchar(64)` required and globally unique. No raw invitation
   token column exists.
 - `created_at timestamptz` and `expires_at timestamptz` required.
 - `accepted_at timestamptz` and `cancelled_at timestamptz` nullable.
