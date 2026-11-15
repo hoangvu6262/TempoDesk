@@ -177,10 +177,11 @@ Backend build output goes under root `artifacts/`.
 
 `.github/workflows/ci.yml` runs backend and frontend build checks on push/PR and
 cancels superseded runs. It audits direct and transitive NuGet and npm packages:
-High/Critical advisories fail; Low/Moderate remain in reports for follow-up. Audit
-tool/network failures or malformed reports also fail. No advisory exceptions are
-configured; any future exception requires a reviewed advisory, owner, expiry and
-explicit policy change.
+High/Critical advisories fail the .NET restore because repository warnings are
+treated as errors; Low/Moderate remain in the uploaded report for follow-up.
+Audit tool/network failures also fail. No advisory exceptions are configured;
+any future exception requires a reviewed advisory, owner, expiry and explicit
+policy change.
 
 To run the npm policy locally:
 
@@ -188,13 +189,13 @@ To run the npm policy locally:
 npm --prefix client/web audit --audit-level=high
 ```
 
-For NuGet, create `artifacts/audit`, save the JSON report, then check its severity:
+For NuGet, run the same restore policy as CI, then optionally save the JSON report:
 
 ```bash
+dotnet restore server/TempoDesk.sln -p:NuGetAuditLevel=high
 mkdir -p artifacts/audit
 dotnet list server/TempoDesk.sln package --vulnerable --include-transitive \
   --format json --output-version 1 --no-restore > artifacts/audit/nuget.json
-node scripts/check-vulnerabilities.mjs artifacts/audit/nuget.json
 ```
 
 ## Stop and troubleshoot
