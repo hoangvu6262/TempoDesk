@@ -10,6 +10,19 @@ export type AcceptedResponse = {
   message: string
 }
 
+export type SessionStatus = 'active' | 'revoked' | 'expired'
+
+export type AuthenticationSession = {
+  id: string
+  userAgent: string | null
+  ipAddress: string | null
+  createdAt: string
+  lastUsedAt: string
+  expiresAt: string
+  status: SessionStatus
+  isCurrent: boolean
+}
+
 export type AuthenticationApi = {
   register(email: string, password: string): Promise<AcceptedResponse>
   verifyEmail(token: string): Promise<void>
@@ -18,6 +31,9 @@ export type AuthenticationApi = {
   forgotPassword(email: string): Promise<AcceptedResponse>
   resetPassword(token: string, newPassword: string): Promise<void>
   refresh(): Promise<AccessTokenResponse>
+  listSessions(): Promise<AuthenticationSession[]>
+  revokeSession(id: string): Promise<void>
+  revokeAllSessions(): Promise<void>
 }
 
 export function createAuthenticationApi(
@@ -58,5 +74,13 @@ export function createAuthenticationApi(
     },
     refresh: async () =>
       (await client.post<AccessTokenResponse>('/api/auth/refresh')).data,
+    listSessions: async () =>
+      (await client.get<AuthenticationSession[]>('/api/auth/sessions')).data,
+    revokeSession: async (id) => {
+      await client.delete(`/api/auth/sessions/${encodeURIComponent(id)}`)
+    },
+    revokeAllSessions: async () => {
+      await client.delete('/api/auth/sessions')
+    },
   }
 }
