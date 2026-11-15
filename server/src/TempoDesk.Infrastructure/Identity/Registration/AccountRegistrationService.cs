@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using TempoDesk.Application.Authentication;
+using TempoDesk.Infrastructure.Workspaces;
 
 namespace TempoDesk.Infrastructure.Identity;
 
@@ -11,6 +12,7 @@ internal sealed class AccountRegistrationService(
     UserManager<ApplicationUser> users,
     TempoDeskIdentityDbContext context,
     IEmailVerificationSender sender,
+    PersonalWorkspaceProvisioner personalWorkspaces,
     TimeProvider timeProvider) : IAccountRegistrationService
 {
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(30);
@@ -23,6 +25,11 @@ internal sealed class AccountRegistrationService(
         var existing = await users.FindByEmailAsync(email);
         if (existing is not null)
         {
+            await personalWorkspaces.EnsureAsync(
+                existing.Id,
+                timeProvider.GetUtcNow(),
+                cancellationToken);
+
             if (!existing.EmailConfirmed)
                 await ResendVerificationAsync(email, cancellationToken);
 
@@ -54,8 +61,16 @@ internal sealed class AccountRegistrationService(
             await transaction.RollbackAsync(cancellationToken);
             context.ChangeTracker.Clear();
             var duplicate = await users.FindByEmailAsync(email);
-            if (duplicate is not null && !duplicate.EmailConfirmed)
-                await ResendVerificationAsync(email, cancellationToken);
+            if (duplicate is not null)
+            {
+                await personalWorkspaces.EnsureAsync(
+                    duplicate.Id,
+                    timeProvider.GetUtcNow(),
+                    cancellationToken);
+
+                if (!duplicate.EmailConfirmed)
+                    await ResendVerificationAsync(email, cancellationToken);
+            }
 
             return RegistrationResult.Accepted;
         }
@@ -72,6 +87,10 @@ internal sealed class AccountRegistrationService(
                         StringComparer.Ordinal));
         }
 
+        await personalWorkspaces.EnsureAsync(
+            user.Id,
+            now,
+            cancellationToken);
         var message = AddToken(user, now);
         AddAudit("user.registration", true, user.Id, now);
         await context.SaveChangesAsync(cancellationToken);

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
 using TempoDesk.Api;
 using TempoDesk.Infrastructure.Configuration;
 using TempoDesk.Infrastructure.Health;
@@ -22,10 +23,30 @@ builder.Services.AddFoundationConfiguration(builder.Configuration);
 builder.Services.AddTempoDeskIdentity();
 builder.Services.AddSingleton<DatabaseReadiness>();
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "TempoDesk API",
+        Version = "v1"
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Enter a JWT access token."
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
     context.ProblemDetails.Type = $"https://httpstatuses.com/{context.ProblemDetails.Status}";
-    context.ProblemDetails.Detail = "The request could not be completed.";
+    context.ProblemDetails.Detail ??= "The request could not be completed.";
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 builder.Services.AddCors();
@@ -44,7 +65,16 @@ app.MapGet("/health/ready", async (DatabaseReadiness database, CancellationToken
     return Results.Json(new { status = ready ? "Healthy" : "Unhealthy", elapsedMs = timer.Elapsed.TotalMilliseconds }, statusCode: ready ? 200 : 503);
 });
 if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "TempoDesk API v1");
+    });
     app.MapGet("/dev/errors/{status:int}", (int status) => ErrorExamples.Throw(status));
+}
 app.MapControllers();
 var authentication = app.Services.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
 var jira = app.Services.GetRequiredService<IOptions<JiraOptions>>().Value;

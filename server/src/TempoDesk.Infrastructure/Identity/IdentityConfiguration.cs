@@ -8,8 +8,10 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using TempoDesk.Application.Authentication;
+using TempoDesk.Application.Workspaces;
 using TempoDesk.Infrastructure.Configuration;
 using TempoDesk.Infrastructure.Email;
+using TempoDesk.Infrastructure.Workspaces;
 
 namespace TempoDesk.Infrastructure.Identity;
 
@@ -99,6 +101,8 @@ public static class IdentityConfiguration
             SmtpEmailVerificationSender>();
         services.TryAddScoped<IPasswordResetEmailSender,
             SmtpPasswordResetEmailSender>();
+        services.AddScoped<PersonalWorkspaceProvisioner>();
+        services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
         services.AddScoped<IAccountLoginService, AccountLoginService>();
