@@ -12,6 +12,7 @@ import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage'
 import { SessionManagementPage } from '../features/sessions/SessionManagementPage'
 import { CreateWorkspacePage } from '../features/workspaces/pages/CreateWorkspacePage'
+import { AcceptInvitationPage } from '../features/workspaces/pages/AcceptInvitationPage'
 import { WorkspaceOverviewPage } from '../features/workspaces/pages/WorkspaceOverviewPage'
 import { WorkspaceEntryPage } from '../features/workspaces/routes/WorkspaceEntryPage'
 import { WorkspaceRoute } from '../features/workspaces/routes/WorkspaceRoute'
@@ -127,6 +128,14 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+      <Route
+        path="/accept-invitation"
+        element={
+          <ProtectedRoute>
+            <AcceptInvitationPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>

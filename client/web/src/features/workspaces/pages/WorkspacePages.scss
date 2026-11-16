@@ -74,6 +74,27 @@
   }
 }
 
+.td-invitation-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+
+  &__card {
+    width: min(100%, 36rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-large);
+    padding: var(--space-8);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-raised);
+  }
+
+  &__actions {
+    display: grid;
+    gap: var(--space-4);
+  }
+}
+
 @media (max-width: 640px) {
   .td-workspace-page {
     &__form {
@@ -84,5 +105,9 @@
       align-items: stretch;
       flex-direction: column;
     }
+  }
+
+  .td-invitation-page__card {
+    padding: var(--space-6);
   }
 }
