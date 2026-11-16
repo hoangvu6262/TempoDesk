@@ -345,33 +345,201 @@ internal sealed class WorkspaceMembershipService(
             membership.CreatedAt));
     }
 
-    public Task<WorkspaceMembershipResult> ChangeRoleAsync(
+    public async Task<WorkspaceMembershipResult> ChangeRoleAsync(
         Guid actorUserId,
         Guid workspaceId,
         Guid memberId,
         string? role,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        var requestedRole = role?.Trim().ToLowerInvariant();
+        if (!WorkspaceMembershipPolicy.IsManagedRole(requestedRole))
+        {
+            return WorkspaceMembershipResult.Invalid(
+                "role", "Role must be admin, member, or viewer.");
+        }
 
-    public Task<WorkspaceMembershipResult> RemoveMemberAsync(
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var workspace = await LockWorkspaceAsync(workspaceId, cancellationToken);
+        if (workspace is null)
+            return WorkspaceMembershipResult.Missing;
+
+        if (workspace.Type != WorkspaceTypeValues.Team)
+        {
+            var view = await authorization.AuthorizeAsync(
+                actorUserId, workspaceId, WorkspaceAction.ViewWorkspace,
+                cancellationToken);
+            return view.Status == WorkspaceAuthorizationStatus.Allowed
+                ? WorkspaceMembershipResult.Conflicted
+                : AuthorizationFailure(view);
+        }
+
+        var membership = await context.WorkspaceMembers
+            .Include(member => member.User)
+            .SingleOrDefaultAsync(member => member.Id == memberId &&
+                member.WorkspaceId == workspaceId &&
+                member.RemovedAt == null,
+                cancellationToken);
+        if (membership is null)
+            return WorkspaceMembershipResult.Missing;
+
+        var action = WorkspaceMembershipPolicy.RoleChangeAction(
+            membership.Role, requestedRole!);
+        if (action is null)
+            return WorkspaceMembershipResult.Denied;
+
+        var access = await authorization.AuthorizeAsync(
+            actorUserId, workspaceId, action.Value, cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
+        membership.Role = requestedRole!;
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return WorkspaceMembershipResult.WithMember(ToSummary(membership));
+    }
+
+    public async Task<WorkspaceMembershipResult> RemoveMemberAsync(
         Guid actorUserId,
         Guid workspaceId,
         Guid memberId,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var workspace = await LockWorkspaceAsync(workspaceId, cancellationToken);
+        if (workspace is null)
+            return WorkspaceMembershipResult.Missing;
 
-    public Task<WorkspaceMembershipResult> LeaveAsync(
+        if (workspace.Type != WorkspaceTypeValues.Team)
+        {
+            var view = await authorization.AuthorizeAsync(
+                actorUserId, workspaceId, WorkspaceAction.ViewWorkspace,
+                cancellationToken);
+            return view.Status == WorkspaceAuthorizationStatus.Allowed
+                ? WorkspaceMembershipResult.Conflicted
+                : AuthorizationFailure(view);
+        }
+
+        var membership = await context.WorkspaceMembers.SingleOrDefaultAsync(
+            member => member.Id == memberId &&
+                member.WorkspaceId == workspaceId &&
+                member.RemovedAt == null,
+            cancellationToken);
+        if (membership is null)
+            return WorkspaceMembershipResult.Missing;
+
+        var action = WorkspaceMembershipPolicy.RemovalAction(membership.Role);
+        if (action is null)
+            return WorkspaceMembershipResult.Denied;
+
+        var access = await authorization.AuthorizeAsync(
+            actorUserId, workspaceId, action.Value, cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
+        membership.RemovedAt = timeProvider.GetUtcNow();
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return WorkspaceMembershipResult.Succeeded;
+    }
+
+    public async Task<WorkspaceMembershipResult> LeaveAsync(
         Guid actorUserId,
         Guid workspaceId,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var workspace = await LockWorkspaceAsync(workspaceId, cancellationToken);
+        if (workspace is null)
+            return WorkspaceMembershipResult.Missing;
 
-    public Task<WorkspaceMembershipResult> TransferOwnershipAsync(
+        if (workspace.Type != WorkspaceTypeValues.Team)
+        {
+            var view = await authorization.AuthorizeAsync(
+                actorUserId, workspaceId, WorkspaceAction.ViewWorkspace,
+                cancellationToken);
+            return view.Status == WorkspaceAuthorizationStatus.Allowed
+                ? WorkspaceMembershipResult.Conflicted
+                : AuthorizationFailure(view);
+        }
+
+        var access = await authorization.AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.LeaveWorkspace,
+            cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
+        var membership = await context.WorkspaceMembers.SingleOrDefaultAsync(
+            member => member.WorkspaceId == workspaceId &&
+                member.UserId == actorUserId && member.RemovedAt == null,
+            cancellationToken);
+        if (membership is null)
+            return WorkspaceMembershipResult.Missing;
+
+        membership.RemovedAt = timeProvider.GetUtcNow();
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return WorkspaceMembershipResult.Succeeded;
+    }
+
+    public async Task<WorkspaceMembershipResult> TransferOwnershipAsync(
         Guid actorUserId,
         Guid workspaceId,
         Guid targetMemberId,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var workspace = await LockWorkspaceAsync(workspaceId, cancellationToken);
+        if (workspace is null)
+            return WorkspaceMembershipResult.Missing;
+
+        if (workspace.Type != WorkspaceTypeValues.Team)
+        {
+            var view = await authorization.AuthorizeAsync(
+                actorUserId, workspaceId, WorkspaceAction.ViewWorkspace,
+                cancellationToken);
+            return view.Status == WorkspaceAuthorizationStatus.Allowed
+                ? WorkspaceMembershipResult.Conflicted
+                : AuthorizationFailure(view);
+        }
+
+        var access = await authorization.AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.TransferOwnership,
+            cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
+        var target = await context.WorkspaceMembers.SingleOrDefaultAsync(
+            member => member.Id == targetMemberId &&
+                member.WorkspaceId == workspaceId &&
+                member.RemovedAt == null,
+            cancellationToken);
+        if (target is null)
+            return WorkspaceMembershipResult.Missing;
+        if (target.UserId == workspace.OwnerUserId)
+            return WorkspaceMembershipResult.Conflicted;
+
+        var currentOwner = await context.WorkspaceMembers.SingleAsync(
+            member => member.WorkspaceId == workspaceId &&
+                member.UserId == workspace.OwnerUserId &&
+                member.Role == WorkspaceRoles.Owner &&
+                member.RemovedAt == null,
+            cancellationToken);
+
+        currentOwner.Role = WorkspaceRoles.Admin;
+        await context.SaveChangesAsync(cancellationToken);
+
+        target.Role = WorkspaceRoles.Owner;
+        workspace.OwnerUserId = target.UserId;
+        workspace.UpdatedAt = timeProvider.GetUtcNow();
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return WorkspaceMembershipResult.Succeeded;
+    }
 
     private Task<Workspace?> LockWorkspaceAsync(
         Guid workspaceId,
@@ -398,6 +566,13 @@ internal sealed class WorkspaceMembershipService(
             invitation.Role,
             invitation.CreatedAt,
             invitation.ExpiresAt);
+
+    private static WorkspaceMemberSummary ToSummary(
+        WorkspaceMember member) => new(
+            member.Id,
+            member.User.Email!,
+            member.Role,
+            member.CreatedAt);
 
     private static WorkspaceMembershipResult AuthorizationFailure(
         WorkspaceAuthorizationResult authorization) =>
