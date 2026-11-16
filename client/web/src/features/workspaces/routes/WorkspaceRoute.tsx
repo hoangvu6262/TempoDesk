@@ -39,5 +39,10 @@ export function WorkspaceRoute() {
 
   if (!workspace) return <Navigate replace to="/app" />
 
-  return <Outlet context={{ workspace } satisfies WorkspaceRouteContext} />
+  return (
+    <Outlet
+      key={workspace.id}
+      context={{ workspace } satisfies WorkspaceRouteContext}
+    />
+  )
 }

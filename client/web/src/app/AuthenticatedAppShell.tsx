@@ -49,12 +49,19 @@ export function AuthenticatedAppShell() {
 
         <nav className="td-workspace-shell__nav" aria-label="Workspace">
           {selectedWorkspace && (
-            <NavLink
-              to={`/app/workspaces/${encodeURIComponent(selectedWorkspace.id)}`}
-              end
-            >
-              Overview
-            </NavLink>
+            <>
+              <NavLink
+                to={`/app/workspaces/${encodeURIComponent(selectedWorkspace.id)}`}
+                end
+              >
+                Overview
+              </NavLink>
+              <NavLink
+                to={`/app/workspaces/${encodeURIComponent(selectedWorkspace.id)}/members`}
+              >
+                Members
+              </NavLink>
+            </>
           )}
           <NavLink to="/app/workspaces/new">Create Team Workspace</NavLink>
         </nav>

@@ -14,6 +14,7 @@ import { SessionManagementPage } from '../features/sessions/SessionManagementPag
 import { CreateWorkspacePage } from '../features/workspaces/pages/CreateWorkspacePage'
 import { AcceptInvitationPage } from '../features/workspaces/pages/AcceptInvitationPage'
 import { WorkspaceOverviewPage } from '../features/workspaces/pages/WorkspaceOverviewPage'
+import { WorkspaceMembersPage } from '../features/workspaces/pages/WorkspaceMembersPage'
 import { WorkspaceEntryPage } from '../features/workspaces/routes/WorkspaceEntryPage'
 import { WorkspaceRoute } from '../features/workspaces/routes/WorkspaceRoute'
 import { WorkspaceProvider } from '../features/workspaces/state/WorkspaceProvider'
@@ -148,6 +149,7 @@ export function AppRoutes() {
           <Route path="workspaces/new" element={<CreateWorkspacePage />} />
           <Route path="workspaces/:workspaceId" element={<WorkspaceRoute />}>
             <Route index element={<WorkspaceOverviewPage />} />
+            <Route path="members" element={<WorkspaceMembersPage />} />
           </Route>
           <Route path="account/sessions" element={<SessionManagementPage />} />
         </Route>
