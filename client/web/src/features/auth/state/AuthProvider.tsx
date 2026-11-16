@@ -6,8 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { readClientConfig } from '../../../config/env'
-import { createApiClient } from '../../../lib/api'
+import { useApiRuntime } from '../../../lib/api'
 import {
   createAuthenticationApi,
   type AccessTokenResponse,
@@ -20,31 +19,8 @@ const MIN_REFRESH_DELAY_MS = 1_000
 
 type AuthProviderProps = PropsWithChildren<{ api?: AuthenticationApi }>
 
-function createAuthRuntime(injectedApi?: AuthenticationApi) {
-  if (injectedApi) {
-    return {
-      api: injectedApi,
-      setAccessToken: (value: string | null) => void value,
-    }
-  }
-  let accessToken: string | null = null
-  const client = createApiClient(
-    readClientConfig(import.meta.env).apiBaseUrl,
-    () =>
-      accessToken
-        ? new Headers({ Authorization: `Bearer ${accessToken}` })
-        : new Headers(),
-  )
-  client.defaults.withCredentials = true
-  return {
-    api: createAuthenticationApi(client),
-    setAccessToken: (value: string | null) => {
-      accessToken = value
-    },
-  }
-}
-
 export function AuthProvider({ api, children }: AuthProviderProps) {
+  const { client, setAccessToken, setUnauthorizedHandler } = useApiRuntime()
   const timerRef = useRef<number | undefined>(undefined)
   const refreshPromiseRef = useRef<Promise<void> | null>(null)
   const refreshRef = useRef<() => Promise<void>>(async () => {})
@@ -52,20 +28,19 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
   const activeRef = useRef(true)
   const sessionGenerationRef = useRef(0)
   const [status, setStatus] = useState<AuthStatus>('initializing')
-  const [runtime] = useState(() => createAuthRuntime(api))
-  const authApi = runtime.api
+  const [authApi] = useState(() => api ?? createAuthenticationApi(client))
 
   const clearSession = useCallback(() => {
     sessionGenerationRef.current += 1
-    runtime.setAccessToken(null)
+    setAccessToken(null)
     window.clearTimeout(timerRef.current)
     timerRef.current = undefined
     if (activeRef.current) setStatus('anonymous')
-  }, [runtime])
+  }, [setAccessToken])
 
   const applyToken = useCallback(
     (result: AccessTokenResponse) => {
-      runtime.setAccessToken(result.accessToken)
+      setAccessToken(result.accessToken)
       if (activeRef.current) setStatus('authenticated')
       window.clearTimeout(timerRef.current)
       const delay = Math.max(
@@ -77,7 +52,7 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
         delay,
       )
     },
-    [runtime],
+    [setAccessToken],
   )
 
   const runRefresh = useCallback(() => {
@@ -101,6 +76,11 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
   useEffect(() => {
     refreshRef.current = runRefresh
   }, [runRefresh])
+
+  useEffect(() => {
+    setUnauthorizedHandler(clearSession)
+    return () => setUnauthorizedHandler(null)
+  }, [clearSession, setUnauthorizedHandler])
 
   useEffect(() => {
     activeRef.current = true

@@ -10,6 +10,7 @@ import { assertSafeApiPath } from './api-path'
 export function createApiClient(
   baseUrl: string,
   requestHeaders?: () => HeadersInit,
+  onUnauthorized?: () => void,
 ) {
   const api = axios.create({
     baseURL: baseUrl.replace(/\/$/, ''),
@@ -41,7 +42,11 @@ export function createApiClient(
 
   api.interceptors.response.use(
     (response) => response,
-    (error: unknown) => Promise.reject(toApiError(error)),
+    (error: unknown) => {
+      const apiError = toApiError(error)
+      if (apiError.status === 401) onUnauthorized?.()
+      return Promise.reject(apiError)
+    },
   )
 
   return api
