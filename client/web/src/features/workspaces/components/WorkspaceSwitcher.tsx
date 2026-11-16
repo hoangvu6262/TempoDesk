@@ -73,6 +73,11 @@ export function WorkspaceSwitcher({
           </Button>
         </Alert>
       )}
+      {!loading && !error && workspaces.length === 0 && (
+        <p className="td-workspace-switcher__empty" role="status">
+          No workspaces available.
+        </p>
+      )}
     </div>
   )
 }
