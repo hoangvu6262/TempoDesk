@@ -86,8 +86,8 @@ workspace navigation, account navigation, and an `Outlet`. It replaces the
 temporary development shell only for protected routes; public authentication
 and landing routes retain their current layouts.
 
-The account navigation links to device sessions and provides sign-out behavior
-through the existing auth boundary.
+The account navigation links to device sessions. A new sign-out API or refresh
+cookie revocation flow is outside this ticket.
 
 ### Workspace switcher
 
