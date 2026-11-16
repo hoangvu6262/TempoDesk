@@ -16,6 +16,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             .WithUsername("postgres")
             .WithPassword("test-postgres-password")
             .Build();
+    private string migratorConnectionString = "";
 
     public DatabaseOptions RuntimeOptions { get; private set; } = null!;
 
@@ -59,6 +60,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             Username = "tempodesk_migrator",
             Password = MigratorPassword
         };
+        migratorConnectionString = migrator.ConnectionString;
         await using (var connection = new NpgsqlConnection(
             migrator.ConnectionString))
         {
@@ -105,8 +107,10 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
     public async Task ResetAsync()
     {
-        await using var context = CreateContext();
-        await context.Database.ExecuteSqlRawAsync("""
+        await using var connection = new NpgsqlConnection(
+            migratorConnectionString);
+        await connection.OpenAsync();
+        await new NpgsqlCommand("""
             TRUNCATE TABLE
                 public.workspace_invitations,
                 public.workspace_members,
@@ -120,7 +124,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
                 public.user_claims,
                 public.users
             RESTART IDENTITY CASCADE
-            """);
+            """, connection).ExecuteNonQueryAsync();
     }
 
     public async Task DisposeAsync() => await database.DisposeAsync();
