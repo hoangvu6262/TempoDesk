@@ -9,10 +9,11 @@ import { ApiError } from '../../../lib/api'
 import { Alert, Button, Spinner } from '../../../ui'
 import { InvitationList } from '../components/InvitationList'
 import { InviteMemberForm } from '../components/InviteMemberForm'
-import { formatWorkspaceDate } from '../workspace-display'
+import { MemberList, type PendingMemberAction } from '../components/MemberList'
 import { useSelectedWorkspace } from '../routes/useSelectedWorkspace'
 import { useWorkspaces } from '../state/WorkspaceContext'
 import { workspaceFieldError, workspaceRequestError } from '../workspace-errors'
+import { canLeaveWorkspace } from '../workspace-permissions'
 import '../components/WorkspaceManagement.scss'
 
 const OWNER_INVITE_ROLES = ['admin', 'member', 'viewer'] as const
@@ -36,6 +37,9 @@ export function WorkspaceMembersPage() {
   const [pendingInvitationId, setPendingInvitationId] = useState<string | null>(
     null,
   )
+  const [pendingMemberAction, setPendingMemberAction] =
+    useState<PendingMemberAction | null>(null)
+  const [leaving, setLeaving] = useState(false)
   const [loadVersion, setLoadVersion] = useState(0)
 
   useEffect(() => {
@@ -157,6 +161,141 @@ export function WorkspaceMembersPage() {
     }
   }
 
+  async function changeRole(
+    member: WorkspaceMember,
+    role: ManageableWorkspaceRole,
+  ) {
+    if (member.role === role) return
+    setPendingMemberAction({ kind: 'role', memberId: member.id })
+    setActionError(undefined)
+    setSuccess(undefined)
+    try {
+      const updatedMember = await api.changeRole(workspace.id, member.id, role)
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              members: current.members.map((currentMember) =>
+                currentMember.id === updatedMember.id
+                  ? updatedMember
+                  : currentMember,
+              ),
+            }
+          : current,
+      )
+      setSuccess(`${member.email} is now ${role}.`)
+    } catch (error) {
+      setActionError(
+        await mutationError(
+          error,
+          'The member role changed before this request completed. Refresh and try again.',
+          'Unable to change the member role. Please try again.',
+        ),
+      )
+    } finally {
+      setPendingMemberAction(null)
+    }
+  }
+
+  async function removeMember(member: WorkspaceMember) {
+    setPendingMemberAction({ kind: 'remove', memberId: member.id })
+    setActionError(undefined)
+    setSuccess(undefined)
+    try {
+      await api.removeMember(workspace.id, member.id)
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              members: current.members.filter(
+                (currentMember) => currentMember.id !== member.id,
+              ),
+            }
+          : current,
+      )
+      setSuccess(`${member.email} was removed from the workspace.`)
+    } catch (error) {
+      setActionError(
+        await mutationError(
+          error,
+          'The member could not be removed because their workspace access changed.',
+          'Unable to remove the member. Please try again.',
+        ),
+      )
+    } finally {
+      setPendingMemberAction(null)
+    }
+  }
+
+  async function transferOwnership(member: WorkspaceMember) {
+    setPendingMemberAction({ kind: 'transfer', memberId: member.id })
+    setActionError(undefined)
+    setSuccess(undefined)
+    try {
+      await api.transferOwnership(workspace.id, member.id)
+      setSuccess(`Ownership transferred to ${member.email}.`)
+
+      const [workspaceResult, managementResult] = await Promise.allSettled([
+        refreshWorkspaces(),
+        Promise.all([
+          api.listMembers(workspace.id),
+          api.listInvitations(workspace.id),
+        ]),
+      ])
+      if (managementResult.status === 'fulfilled') {
+        const [members, invitations] = managementResult.value
+        setData({ members, invitations })
+      }
+      if (
+        workspaceResult.status === 'rejected' ||
+        managementResult.status === 'rejected'
+      ) {
+        setActionError(
+          'Ownership was transferred, but the latest workspace details could not be loaded. Refresh to see the current access.',
+        )
+      }
+    } catch (error) {
+      setActionError(
+        await mutationError(
+          error,
+          'Ownership could not be transferred because workspace membership changed.',
+          'Unable to transfer ownership. Please try again.',
+        ),
+      )
+    } finally {
+      setPendingMemberAction(null)
+    }
+  }
+
+  async function leaveWorkspace() {
+    if (
+      !window.confirm(
+        `Leave ${workspace.name}? You will lose access to this workspace.`,
+      )
+    ) {
+      return
+    }
+
+    setLeaving(true)
+    setActionError(undefined)
+    setSuccess(undefined)
+    try {
+      await api.leave(workspace.id)
+      await refreshWorkspaces().catch(() => undefined)
+      navigate('/app', { replace: true })
+    } catch (error) {
+      setActionError(
+        await mutationError(
+          error,
+          'You cannot leave because your workspace access changed.',
+          'Unable to leave the workspace. Please try again.',
+        ),
+      )
+    } finally {
+      setLeaving(false)
+    }
+  }
+
   if (!data && !loadError) {
     return (
       <div className="td-workspace-page__state" role="status">
@@ -225,21 +364,14 @@ export function WorkspaceMembersPage() {
         <div className="td-workspace-management__section-header">
           <h2>Active members</h2>
         </div>
-        <ul className="td-workspace-management__list" aria-label="Members">
-          {data.members.map((member) => (
-            <li key={member.id}>
-              <div className="td-workspace-management__identity">
-                <strong>{member.email}</strong>
-                <span>
-                  {member.role} · Joined{' '}
-                  <time dateTime={member.joinedAt}>
-                    {formatWorkspaceDate(member.joinedAt)}
-                  </time>
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <MemberList
+          members={data.members}
+          actorRole={workspace.role}
+          pendingAction={pendingMemberAction}
+          onChangeRole={(member, role) => void changeRole(member, role)}
+          onRemove={(member) => void removeMember(member)}
+          onTransferOwnership={(member) => void transferOwnership(member)}
+        />
       </section>
 
       <section className="td-workspace-management__section">
@@ -253,6 +385,23 @@ export function WorkspaceMembersPage() {
           onCancel={(invitationId) => void cancelInvitation(invitationId)}
         />
       </section>
+
+      {workspace.type === 'team' && canLeaveWorkspace(workspace.role) && (
+        <section className="td-workspace-management__section td-workspace-management__section--danger">
+          <div className="td-workspace-management__section-header">
+            <h2>Leave workspace</h2>
+            <p>You will need a new invitation to regain access.</p>
+          </div>
+          <Button
+            variant="danger"
+            loading={leaving}
+            disabled={pendingMemberAction !== null}
+            onClick={() => void leaveWorkspace()}
+          >
+            Leave workspace
+          </Button>
+        </section>
+      )}
     </section>
   )
 }
