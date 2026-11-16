@@ -101,10 +101,14 @@ public static class IdentityConfiguration
             SmtpEmailVerificationSender>();
         services.TryAddScoped<IPasswordResetEmailSender,
             SmtpPasswordResetEmailSender>();
+        services.TryAddScoped<IWorkspaceInvitationSender,
+            SmtpWorkspaceInvitationSender>();
         services.AddScoped<PersonalWorkspaceProvisioner>();
         services.AddScoped<IWorkspaceAuthorizationService,
             WorkspaceAuthorizationService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
+        services.AddScoped<IWorkspaceMembershipService,
+            WorkspaceMembershipService>();
         services.AddScoped<IAccountRegistrationService,
             AccountRegistrationService>();
         services.AddScoped<IAccountLoginService, AccountLoginService>();

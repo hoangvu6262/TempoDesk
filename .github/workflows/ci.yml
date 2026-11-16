@@ -38,6 +38,7 @@ jobs:
             global.json
       - run: dotnet restore server/TempoDesk.sln -p:NuGetAuditLevel=high
       - run: dotnet build server/TempoDesk.sln --configuration Release --no-restore
+      - run: dotnet test server/TempoDesk.sln --configuration Release --no-build
       - name: NuGet dependency report
         if: ${{ !cancelled() }}
         shell: bash
