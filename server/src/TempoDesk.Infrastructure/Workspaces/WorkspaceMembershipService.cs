@@ -249,11 +249,101 @@ internal sealed class WorkspaceMembershipService(
         return WorkspaceMembershipResult.Succeeded;
     }
 
-    public Task<WorkspaceMembershipResult> AcceptAsync(
+    public async Task<WorkspaceMembershipResult> AcceptAsync(
         Guid userId,
         string? token,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        if (!WorkspaceInvitationToken.TryHash(token, out var tokenHash))
+            return WorkspaceMembershipResult.InvalidToken;
+
+        var now = timeProvider.GetUtcNow();
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var invitation = await context.WorkspaceInvitations
+            .FromSqlInterpolated($"""
+                SELECT * FROM public.workspace_invitations
+                WHERE token_hash = {tokenHash}
+                FOR UPDATE
+                """)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (invitation is null || invitation.AcceptedAt is not null ||
+            invitation.CancelledAt is not null)
+        {
+            return WorkspaceMembershipResult.InvalidToken;
+        }
+
+        if (invitation.ExpiresAt <= now)
+        {
+            invitation.CancelledAt = now;
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return WorkspaceMembershipResult.InvalidToken;
+        }
+
+        var workspaceType = await context.Workspaces
+            .Where(workspace => workspace.Id == invitation.WorkspaceId)
+            .Select(workspace => workspace.Type)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (workspaceType != WorkspaceTypeValues.Team)
+            return WorkspaceMembershipResult.Conflicted;
+
+        var user = await context.Users
+            .AsNoTracking()
+            .Where(candidate => candidate.Id == userId)
+            .Select(candidate => new
+            {
+                candidate.Email,
+                candidate.NormalizedEmail
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (user?.NormalizedEmail is null ||
+            !string.Equals(user.NormalizedEmail,
+                invitation.NormalizedEmail, StringComparison.Ordinal))
+        {
+            return WorkspaceMembershipResult.InvalidToken;
+        }
+
+        var alreadyMember = await context.WorkspaceMembers.AnyAsync(
+            member => member.WorkspaceId == invitation.WorkspaceId &&
+                member.UserId == userId && member.RemovedAt == null,
+            cancellationToken);
+        if (alreadyMember)
+            return WorkspaceMembershipResult.InvalidToken;
+
+        var membership = new WorkspaceMember
+        {
+            Id = Guid.NewGuid(),
+            WorkspaceId = invitation.WorkspaceId,
+            UserId = userId,
+            Role = invitation.Role,
+            CreatedAt = now
+        };
+        context.WorkspaceMembers.Add(membership);
+        invitation.AcceptedAt = now;
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "ux_workspace_members_active_user"
+            })
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            context.ChangeTracker.Clear();
+            return WorkspaceMembershipResult.InvalidToken;
+        }
+
+        return WorkspaceMembershipResult.WithMember(new WorkspaceMemberSummary(
+            membership.Id,
+            user.Email!,
+            membership.Role,
+            membership.CreatedAt));
+    }
 
     public Task<WorkspaceMembershipResult> ChangeRoleAsync(
         Guid actorUserId,

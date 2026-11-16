@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using TempoDesk.Application.Workspaces;
 using TempoDesk.Infrastructure.Identity;
@@ -260,6 +261,161 @@ public sealed class WorkspaceInvitationTests(
             repeated.Status);
     }
 
+    [Fact]
+    public async Task AcceptCreatesMembershipAndConsumesInvitation()
+    {
+        var rawToken = CreateToken();
+        var invitationId = await SeedInvitationAsync(
+            "invitee@example.com", WorkspaceRoles.Member, rawToken);
+        await using var context = database.CreateContext();
+        var service = CreateService(context, new CapturingInvitationSender());
+
+        var result = await service.AcceptAsync(
+            scenario.InviteeUserId, rawToken);
+
+        Assert.Equal(WorkspaceMembershipResultStatus.Success, result.Status);
+        Assert.Equal("invitee@example.com", result.Member?.Email);
+        Assert.Equal(WorkspaceRoles.Member, result.Member?.Role);
+        var invitation = await context.WorkspaceInvitations
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == invitationId);
+        Assert.Equal(Now, invitation.AcceptedAt);
+        Assert.Equal(1, await context.WorkspaceMembers.CountAsync(member =>
+            member.WorkspaceId == scenario.TeamWorkspaceId &&
+            member.UserId == scenario.InviteeUserId &&
+            member.RemovedAt == null));
+    }
+
+    [Fact]
+    public async Task MissingMalformedAndUnknownTokensFailIdentically()
+    {
+        await using var context = database.CreateContext();
+        var service = CreateService(context, new CapturingInvitationSender());
+
+        var missing = await service.AcceptAsync(scenario.InviteeUserId, null);
+        var blank = await service.AcceptAsync(scenario.InviteeUserId, " ");
+        var malformed = await service.AcceptAsync(
+            scenario.InviteeUserId, new string('*', 43));
+        var unknown = await service.AcceptAsync(
+            scenario.InviteeUserId, CreateToken());
+
+        Assert.All([missing, blank, malformed, unknown], result =>
+            Assert.Equal(WorkspaceMembershipResultStatus.InvalidInvitation,
+                result.Status));
+    }
+
+    [Fact]
+    public async Task ExpiredCancelledWrongEmailAndReusedTokensFailIdentically()
+    {
+        var expiredToken = CreateToken();
+        var expiredId = await SeedInvitationAsync(
+            "invitee@example.com",
+            WorkspaceRoles.Member,
+            expiredToken,
+            Now.AddDays(-8),
+            Now.AddDays(-1));
+        await using var context = database.CreateContext();
+        var service = CreateService(context, new CapturingInvitationSender());
+        var expired = await service.AcceptAsync(
+            scenario.InviteeUserId, expiredToken);
+
+        var cancelledToken = CreateToken();
+        await SeedInvitationAsync(
+            "other-cancelled@example.com",
+            WorkspaceRoles.Viewer,
+            cancelledToken,
+            cancelledAt: Now);
+        var wrongEmailToken = CreateToken();
+        await SeedInvitationAsync(
+            "wrong@example.com", WorkspaceRoles.Viewer, wrongEmailToken);
+        var reusableToken = CreateToken();
+        await SeedInvitationAsync(
+            "invitee@example.com", WorkspaceRoles.Member, reusableToken);
+
+        var cancelled = await service.AcceptAsync(
+            scenario.InviteeUserId, cancelledToken);
+        var wrongEmail = await service.AcceptAsync(
+            scenario.InviteeUserId, wrongEmailToken);
+        var first = await service.AcceptAsync(
+            scenario.InviteeUserId, reusableToken);
+        var reused = await service.AcceptAsync(
+            scenario.InviteeUserId, reusableToken);
+
+        Assert.All([expired, cancelled, wrongEmail, reused], result =>
+            Assert.Equal(WorkspaceMembershipResultStatus.InvalidInvitation,
+                result.Status));
+        Assert.Equal(WorkspaceMembershipResultStatus.Success, first.Status);
+        context.ChangeTracker.Clear();
+        Assert.Equal(Now, (await context.WorkspaceInvitations
+            .SingleAsync(item => item.Id == expiredId)).CancelledAt);
+    }
+
+    [Fact]
+    public async Task AcceptAfterRemovalCreatesOneNewActiveMembership()
+    {
+        await using (var seed = database.CreateContext())
+        {
+            seed.WorkspaceMembers.Add(new WorkspaceMember
+            {
+                Id = Guid.NewGuid(),
+                WorkspaceId = scenario.TeamWorkspaceId,
+                UserId = scenario.InviteeUserId,
+                Role = WorkspaceRoles.Viewer,
+                CreatedAt = Now.AddDays(-10),
+                RemovedAt = Now.AddDays(-5)
+            });
+            await seed.SaveChangesAsync();
+        }
+        var rawToken = CreateToken();
+        await SeedInvitationAsync(
+            "invitee@example.com", WorkspaceRoles.Admin, rawToken);
+        await using var context = database.CreateContext();
+        var service = CreateService(context, new CapturingInvitationSender());
+
+        var result = await service.AcceptAsync(
+            scenario.InviteeUserId, rawToken);
+
+        Assert.Equal(WorkspaceMembershipResultStatus.Success, result.Status);
+        var history = await context.WorkspaceMembers
+            .Where(member => member.WorkspaceId == scenario.TeamWorkspaceId &&
+                member.UserId == scenario.InviteeUserId)
+            .OrderBy(member => member.CreatedAt)
+            .ToListAsync();
+        Assert.Equal(2, history.Count);
+        Assert.NotNull(history[0].RemovedAt);
+        Assert.Null(history[1].RemovedAt);
+        Assert.Equal(WorkspaceRoles.Admin, history[1].Role);
+    }
+
+    [Fact]
+    public async Task ConcurrentAcceptanceCreatesExactlyOneMembership()
+    {
+        var rawToken = CreateToken();
+        await SeedInvitationAsync(
+            "invitee@example.com", WorkspaceRoles.Member, rawToken);
+        await using var firstContext = database.CreateContext();
+        await using var secondContext = database.CreateContext();
+        var firstService = CreateService(
+            firstContext, new CapturingInvitationSender());
+        var secondService = CreateService(
+            secondContext, new CapturingInvitationSender());
+
+        var results = await Task.WhenAll(
+            firstService.AcceptAsync(scenario.InviteeUserId, rawToken),
+            secondService.AcceptAsync(scenario.InviteeUserId, rawToken));
+
+        Assert.Single(results, result =>
+            result.Status == WorkspaceMembershipResultStatus.Success);
+        Assert.Single(results, result =>
+            result.Status ==
+                WorkspaceMembershipResultStatus.InvalidInvitation);
+        await using var verification = database.CreateContext();
+        Assert.Equal(1, await verification.WorkspaceMembers.CountAsync(
+            member => member.WorkspaceId == scenario.TeamWorkspaceId &&
+                member.UserId == scenario.InviteeUserId &&
+                member.RemovedAt == null));
+    }
+
     private static WorkspaceMembershipService CreateService(
         TempoDeskIdentityDbContext context,
         IWorkspaceInvitationSender sender) => new(
@@ -271,6 +427,32 @@ public sealed class WorkspaceInvitationTests(
 
     private static string Hash(string token) => Convert.ToHexString(
         SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
+
+    private static string CreateToken() => WebEncoders.Base64UrlEncode(
+        RandomNumberGenerator.GetBytes(32));
+
+    private async Task<Guid> SeedInvitationAsync(
+        string email,
+        string role,
+        string rawToken,
+        DateTimeOffset? createdAt = null,
+        DateTimeOffset? expiresAt = null,
+        DateTimeOffset? acceptedAt = null,
+        DateTimeOffset? cancelledAt = null)
+    {
+        var invitation = Invitation(
+            email,
+            role,
+            Hash(rawToken),
+            createdAt ?? Now,
+            expiresAt ?? Now.AddDays(7),
+            acceptedAt,
+            cancelledAt);
+        await using var context = database.CreateContext();
+        context.WorkspaceInvitations.Add(invitation);
+        await context.SaveChangesAsync();
+        return invitation.Id;
+    }
 
     private WorkspaceInvitation Invitation(
         string email,
@@ -317,6 +499,8 @@ public sealed class WorkspaceInvitationTests(
         Guid AdminUserId,
         Guid MemberUserId,
         Guid ViewerUserId,
+        Guid InviteeUserId,
+        Guid WrongEmailUserId,
         Guid TeamWorkspaceId,
         Guid PersonalWorkspaceId)
     {
@@ -328,6 +512,8 @@ public sealed class WorkspaceInvitationTests(
             var admin = User("admin@example.com", now);
             var member = User("member@example.com", now);
             var viewer = User("viewer@example.com", now);
+            var invitee = User("invitee@example.com", now);
+            var wrongEmail = User("wrong@example.com", now);
             var team = Workspace(
                 "Delivery Team", WorkspaceTypeValues.Team, owner.Id, now);
             var personal = Workspace(
@@ -336,7 +522,8 @@ public sealed class WorkspaceInvitationTests(
             await using var context = database.CreateContext();
             await using var transaction = await context.Database
                 .BeginTransactionAsync();
-            context.Users.AddRange(owner, admin, member, viewer);
+            context.Users.AddRange(
+                owner, admin, member, viewer, invitee, wrongEmail);
             context.Workspaces.AddRange(team, personal);
             context.WorkspaceMembers.AddRange(
                 Membership(team.Id, owner.Id, WorkspaceRoles.Owner, now),
@@ -352,6 +539,8 @@ public sealed class WorkspaceInvitationTests(
                 admin.Id,
                 member.Id,
                 viewer.Id,
+                invitee.Id,
+                wrongEmail.Id,
                 team.Id,
                 personal.Id);
         }
