@@ -38,7 +38,8 @@ Với database cũ đã tạo bảng thủ công, phải đăng ký đúng check
    Không thêm `BEGIN`/`COMMIT`: runner quản lý transaction.
 3. Chạy `docker compose run --build --rm migrator`.
 4. Refresh DBeaver, kiểm tra bảng và `public.schema_history` bằng migrator.
-5. Scaffold lại EF Core khi có bảng nghiệp vụ, rồi cập nhật code liên quan.
+5. Cập nhật explicit EF Core entities/mappings và integration test PostgreSQL
+   cho các bảng nghiệp vụ liên quan.
 
 Ví dụ SQL khi bảng `tasks` đã tồn tại:
 
@@ -57,13 +58,20 @@ không tự phát hiện một file lịch sử đã bị xóa hay cấm chèn f
 chạy tính bằng milliseconds. API/Worker không có quyền đọc/ghi bảng này.
 Bảng vận hành này không cần model nghiệp vụ EF Core.
 
-## Scaffold EF Core
+## EF Core mappings và scaffold tham khảo
+
+Sau khi migration tạo hoặc đổi bảng nghiệp vụ, cập nhật explicit EF Core
+entities/mappings trong `TempoDesk.Infrastructure` và thêm integration test chạy
+trên PostgreSQL thật. Repo hiện không dùng generated scaffold output cho business
+entities. Chỉ dùng `database/scaffold.sh` như công cụ kiểm tra/tham khảo khi cần;
+không commit output generated nếu chưa có một ticket chuyển toàn bộ persistence
+sang workflow scaffold.
 
 Cài .NET 10 SDK. Tool `dotnet-ef` và package EF Design được pin ở 10.0.10;
 Npgsql EF provider 10.0.3 chỉ nằm trong Infrastructure.
 
-Sau khi migration tạo bảng nghiệp vụ thành công, đặt mật khẩu migrator trong
-biến `TEMPODESK_MIGRATION_PASSWORD`, rồi chạy từ thư mục gốc repo:
+Khi cần đối chiếu schema bằng scaffold, đặt mật khẩu migrator trong biến
+`TEMPODESK_MIGRATION_PASSWORD`, rồi chạy từ thư mục gốc repo:
 
 ```bash
 bash database/scaffold.sh public.users public.workspaces

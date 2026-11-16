@@ -138,6 +138,140 @@ public sealed class ProjectTaskPersistenceTests(
             .AnyAsync(item => item.Id == task.Id));
     }
 
+    [Fact]
+    public async Task UpdatingTaskAdvancesRowVersion()
+    {
+        var seeded = await SeedTaskAsync();
+        await using var context = database.CreateContext();
+        var task = await context.Tasks.SingleAsync(
+            item => item.Id == seeded.TaskId);
+        var version = task.RowVersion;
+
+        task.Title = "Updated";
+        await context.SaveChangesAsync();
+
+        Assert.Equal(version + 1, task.RowVersion);
+    }
+
+    [Fact]
+    public async Task StaleTaskUpdateThrowsConcurrencyException()
+    {
+        var seeded = await SeedTaskAsync();
+        await using var first = database.CreateContext();
+        await using var second = database.CreateContext();
+        var firstTask = await first.Tasks.SingleAsync(
+            item => item.Id == seeded.TaskId);
+        var secondTask = await second.Tasks.SingleAsync(
+            item => item.Id == seeded.TaskId);
+
+        firstTask.Title = "First";
+        await first.SaveChangesAsync();
+        secondTask.Title = "Stale";
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => second.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task DeletingProjectCascadesTaskOwnedRecords()
+    {
+        var seeded = await SeedTaskAsync();
+        await using (var context = database.CreateContext())
+        {
+            var labelId = Guid.NewGuid();
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO public.labels
+                    (id, workspace_id, name, normalized_name, created_at)
+                VALUES
+                    ({labelId}, {seeded.WorkspaceId}, 'Backend',
+                     'BACKEND', {Now});
+                INSERT INTO public.task_assignees
+                    (workspace_id, task_id, user_id, assigned_at)
+                VALUES
+                    ({seeded.WorkspaceId}, {seeded.TaskId},
+                     {seeded.UserId}, {Now});
+                INSERT INTO public.task_labels
+                    (workspace_id, task_id, label_id)
+                VALUES
+                    ({seeded.WorkspaceId}, {seeded.TaskId}, {labelId});
+                INSERT INTO public.task_comments
+                    (id, workspace_id, task_id, author_user_id,
+                     body, created_at)
+                VALUES
+                    ({Guid.NewGuid()}, {seeded.WorkspaceId}, {seeded.TaskId},
+                     {seeded.UserId}, 'Ready', {Now});
+                INSERT INTO public.task_activity_logs
+                    (id, workspace_id, task_id, actor_user_id,
+                     event_type, created_at)
+                VALUES
+                    ({Guid.NewGuid()}, {seeded.WorkspaceId}, {seeded.TaskId},
+                     {seeded.UserId}, 'task_created', {Now})
+                """);
+            context.Projects.Remove(await context.Projects.SingleAsync(
+                project => project.Id == seeded.ProjectId));
+            await context.SaveChangesAsync();
+        }
+
+        await using var verification = database.CreateContext();
+        Assert.Empty(await verification.Tasks.IgnoreQueryFilters().ToListAsync());
+        Assert.Empty(await verification.TaskAssignees.ToListAsync());
+        Assert.Empty(await verification.TaskLabels.ToListAsync());
+        Assert.Empty(await verification.TaskComments.ToListAsync());
+        Assert.Empty(await verification.TaskActivityLogs.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ActiveTaskIndexesExcludeDeletedRows()
+    {
+        await using var context = database.CreateContext();
+        var definitions = await context.Database.SqlQueryRaw<string>("""
+            SELECT indexdef AS "Value"
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND indexname IN (
+                  'ix_tasks_workspace_project_active',
+                  'ix_tasks_workspace_due_active')
+            ORDER BY indexname
+            """).ToListAsync();
+
+        Assert.Equal(2, definitions.Count);
+        Assert.All(definitions, definition =>
+            Assert.Contains("deleted_at IS NULL", definition));
+    }
+
+    private async Task<SeededTask> SeedTaskAsync()
+    {
+        var scenario = await CreateScenarioAsync();
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            WorkspaceId = scenario.WorkspaceId,
+            Name = "Delivery",
+            CreatedAt = Now,
+            UpdatedAt = Now
+        };
+        var task = new WorkTask
+        {
+            Id = Guid.NewGuid(),
+            WorkspaceId = scenario.WorkspaceId,
+            ProjectId = project.Id,
+            CreatedByUserId = scenario.UserId,
+            Title = "Task",
+            SortKey = 1000m,
+            CreatedAt = Now,
+            UpdatedAt = Now
+        };
+        project.Tasks.Add(task);
+        await using var context = database.CreateContext();
+        context.Projects.Add(project);
+        await context.SaveChangesAsync();
+        return new(
+            scenario.UserId,
+            scenario.WorkspaceId,
+            project.Id,
+            task.Id);
+    }
+
     private async Task<Scenario> CreateScenarioAsync()
     {
         var email = $"owner-{Guid.NewGuid():N}@example.com";
@@ -182,4 +316,10 @@ public sealed class ProjectTaskPersistenceTests(
     }
 
     private sealed record Scenario(Guid UserId, Guid WorkspaceId);
+
+    private sealed record SeededTask(
+        Guid UserId,
+        Guid WorkspaceId,
+        Guid ProjectId,
+        Guid TaskId);
 }
