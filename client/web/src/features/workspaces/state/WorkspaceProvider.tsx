@@ -1,20 +1,10 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet } from 'react-router'
 import { createWorkspaceApi, type Workspace } from '../../../api/workspace-api'
 import { useApiRuntime } from '../../../lib/api'
-import {
-  WorkspaceContext,
-  type WorkspaceLoadState,
-} from './WorkspaceContext'
+import { WorkspaceContext, type WorkspaceLoadState } from './WorkspaceContext'
 
-const LOAD_ERROR_MESSAGE =
-  'Unable to load your workspaces. Please try again.'
+const LOAD_ERROR_MESSAGE = 'Unable to load your workspaces. Please try again.'
 
 export function WorkspaceProvider() {
   const { client } = useApiRuntime()

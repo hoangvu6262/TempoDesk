@@ -1,0 +1,138 @@
+.td-workspace-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 17rem minmax(0, 1fr);
+
+  &__sidebar {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-8);
+    border-right: 1px solid var(--color-border);
+    padding: var(--space-6);
+    background: var(--color-surface);
+  }
+
+  &__sidebar .td-brand {
+    font-size: var(--font-size-heading-3);
+  }
+
+  &__sidebar .td-brand__mark {
+    width: var(--control-height-small);
+    height: var(--control-height-small);
+    border-radius: var(--radius-medium);
+    font-size: var(--font-size-label);
+  }
+
+  &__nav {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  &__nav--account {
+    margin-top: auto;
+  }
+
+  &__nav-label {
+    margin-bottom: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+  }
+
+  &__nav a {
+    border-radius: var(--radius-medium);
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-label);
+    text-decoration: none;
+    transition:
+      color var(--motion-fast),
+      background var(--motion-fast);
+  }
+
+  &__nav a:hover {
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+  }
+
+  &__nav a.active {
+    background: var(--color-surface-subtle);
+    color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  &__nav a:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  &__body {
+    min-width: 0;
+  }
+
+  &__header {
+    display: flex;
+    min-height: 4.5rem;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-4) var(--space-8);
+    background: var(--color-surface);
+  }
+
+  &__header div {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  &__header strong {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  &__header span {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    text-transform: capitalize;
+  }
+
+  &__main {
+    width: min(100%, 72rem);
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-8);
+  }
+}
+
+@media (max-width: 720px) {
+  .td-workspace-shell {
+    display: block;
+
+    &__sidebar {
+      gap: var(--space-5);
+      border-right: 0;
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-5);
+    }
+
+    &__nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__nav--account {
+      margin-top: 0;
+    }
+
+    &__nav-label {
+      grid-column: 1 / -1;
+    }
+
+    &__header {
+      padding: var(--space-4) var(--space-5);
+    }
+
+    &__main {
+      padding: var(--space-8) var(--space-5);
+    }
+  }
+}
