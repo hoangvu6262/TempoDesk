@@ -64,6 +64,8 @@ ownership-transfer operation.
 
 The service generates a token from 32 cryptographically secure random bytes,
 encodes it as unpadded base64url, and stores only its lowercase SHA-256 hash.
+Invitations expire seven days after creation; the lifetime is a fixed product
+rule for SCRUM-35 rather than a new configuration surface.
 The raw token exists only in memory long enough to pass an invitation message
 to `IWorkspaceInvitationSender`. The SMTP implementation builds the acceptance
 link from the configured frontend base URL. Neither token form is logged or
