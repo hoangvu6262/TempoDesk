@@ -112,6 +112,13 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         await connection.OpenAsync();
         await new NpgsqlCommand("""
             TRUNCATE TABLE
+                public.task_activity_logs,
+                public.task_comments,
+                public.task_labels,
+                public.labels,
+                public.task_assignees,
+                public.tasks,
+                public.projects,
                 public.workspace_invitations,
                 public.workspace_members,
                 public.workspaces,
