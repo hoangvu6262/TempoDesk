@@ -33,10 +33,19 @@ access token and authenticated Axios client. It exposes the shared client to
 feature API adapters without exposing the token value. Workspace pages call a
 typed workspace API adapter rather than Axios directly.
 
-An authenticated API response with HTTP 401 clears local authentication through
-the existing auth boundary. HTTP 403 does not clear the session; the active page
-shows a permission message and may refresh workspace data when a concurrent role
-change could have invalidated the visible controls.
+An authenticated API response with HTTP 401 first enters a single-flight session
+recovery flow. Concurrent failed requests share one refresh request. When refresh
+succeeds, each original request retries once with the new access token. The
+refresh endpoint itself and an already retried request never trigger another
+recovery attempt.
+
+Only an HTTP 401 from the refresh endpoint clears local authentication. Network,
+timeout, and server failures preserve the authenticated UI and its in-memory form
+state, then schedule another refresh attempt with bounded backoff. An initial
+session check that cannot reach the server renders a recoverable connection state
+instead of redirecting to login. HTTP 403 does not refresh or clear the session;
+the active page shows a permission message and may refresh workspace data when a
+concurrent role change could have invalidated the visible controls.
 
 Access tokens and invitation tokens are never written to local storage or
 session storage.

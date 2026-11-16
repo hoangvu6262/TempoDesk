@@ -25,8 +25,8 @@
 
 - `client/web/src/lib/api/ApiContext.ts` — shared authenticated client context and hook.
 - `client/web/src/lib/api/ApiProvider.tsx` — in-memory token, Axios client, and unauthorized callback ownership.
-- `client/web/src/lib/api/api-client.ts` — central 401 notification after API error normalization.
-- `client/web/src/features/auth/state/AuthProvider.tsx` — consumes `ApiProvider` and clears auth on 401.
+- `client/web/src/lib/api/api-client.ts` — single-flight 401 recovery and one-time request replay after API error normalization.
+- `client/web/src/features/auth/state/AuthProvider.tsx` — refresh lifecycle, transient recovery, and terminal session expiry.
 - `client/web/src/api/workspace-api.ts` — workspace, member, invitation types and HTTP operations.
 - `client/web/src/features/workspaces/workspace-permissions.ts` — fixed role-based UI visibility helpers.
 - `client/web/src/features/workspaces/workspace-errors.ts` — safe workspace validation and request messages.
@@ -608,3 +608,64 @@ git commit -m "fix(frontend): complete SCRUM-36 verification"
 ```
 
 If no files changed, do not create an empty commit.
+
+---
+
+### Task 10: Recover Expired Access Tokens Without Losing UI State
+
+**Files:**
+- Modify: `client/web/src/lib/api/ApiContext.ts`
+- Modify: `client/web/src/lib/api/ApiProvider.tsx`
+- Modify: `client/web/src/lib/api/api-client.ts`
+- Modify: `client/web/src/features/auth/state/AuthContext.ts`
+- Modify: `client/web/src/features/auth/state/AuthProvider.tsx`
+- Modify: `client/web/src/routes/ProtectedRoute.tsx`
+
+**Interfaces:**
+- Changes: `setUnauthorizedHandler(handler: (() => Promise<boolean>) | null)` resolves `true` only after a new access token is installed.
+- Changes: `AuthStatus` adds `unavailable` for an initial session check blocked by a transient failure.
+- Produces: `retrySession(): Promise<void>` for the protected connection-error state.
+
+- [ ] **Step 1: Make the shared client recover and replay once**
+
+When a non-refresh request receives HTTP 401, call the asynchronous unauthorized
+handler. Concurrent calls share the handler's in-flight refresh promise. If it
+resolves `true`, remove the stale Authorization header and replay the original
+request once. Mark the request before replay so a second 401 is returned without
+another recovery attempt. Never recover `/api/auth/refresh` from its own 401.
+
+- [ ] **Step 2: Distinguish terminal and transient refresh failures**
+
+Make `AuthProvider.runRefresh()` resolve `true` after applying a new token and
+`false` after an error. Clear authentication only for `ApiError.status === 401`.
+For network, timeout, invalid-response, and 5xx failures, retain an existing
+authenticated state and schedule another refresh with bounded backoff. If no
+access token exists during initial application startup, expose `unavailable`
+instead of redirecting to login.
+
+- [ ] **Step 3: Keep protected content safe during recovery**
+
+Register `runRefresh` as the unauthorized handler. Add `retrySession` to the auth
+context. `ProtectedRoute` renders an accessible connection-error alert with a
+retry button for `unavailable`; it redirects only for `anonymous`, after the
+refresh endpoint has confirmed HTTP 401.
+
+- [ ] **Step 4: Verify and commit**
+
+Run:
+
+```bash
+npm --prefix client/web run format:check
+npm --prefix client/web run lint
+npm --prefix client/web run build
+```
+
+Expected: all commands exit `0`. Do not add frontend tests by the explicit
+SCRUM-36 product decision.
+
+Commit:
+
+```bash
+git add docs/superpowers client/web/src/lib/api client/web/src/features/auth/state client/web/src/routes/ProtectedRoute.tsx
+git commit -m "fix(frontend): recover expired access tokens"
+```
