@@ -4,7 +4,7 @@ import { createContext, useContext } from 'react'
 export type ApiRuntime = {
   client: AxiosInstance
   setAccessToken(value: string | null): void
-  setUnauthorizedHandler(handler: (() => void) | null): void
+  setUnauthorizedHandler(handler: (() => Promise<boolean>) | null): void
 }
 
 export const ApiContext = createContext<ApiRuntime | null>(null)

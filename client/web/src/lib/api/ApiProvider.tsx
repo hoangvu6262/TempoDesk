@@ -5,14 +5,14 @@ import { createApiClient } from './api-client'
 
 function createApiRuntime(): ApiRuntime {
   let accessToken: string | null = null
-  let unauthorizedHandler: (() => void) | null = null
+  let unauthorizedHandler: (() => Promise<boolean>) | null = null
   const client = createApiClient(
     readClientConfig(import.meta.env).apiBaseUrl,
     () =>
       accessToken
         ? new Headers({ Authorization: `Bearer ${accessToken}` })
         : new Headers(),
-    () => unauthorizedHandler?.(),
+    () => unauthorizedHandler?.() ?? Promise.resolve(false),
   )
   client.defaults.withCredentials = true
 
