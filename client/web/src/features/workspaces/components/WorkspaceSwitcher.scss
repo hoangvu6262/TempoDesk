@@ -1,0 +1,67 @@
+.td-workspace-switcher {
+  display: grid;
+  gap: var(--space-2);
+
+  &__label {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+  }
+
+  &__control {
+    position: relative;
+  }
+
+  &__control select {
+    width: 100%;
+    height: var(--control-height-medium);
+    appearance: none;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-medium);
+    padding: 0 var(--space-8) 0 var(--space-3);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--font-size-label);
+  }
+
+  &__control::after {
+    position: absolute;
+    top: 50%;
+    right: var(--space-3);
+    border: solid var(--color-text-muted);
+    border-width: 0 1px 1px 0;
+    content: '';
+    padding: var(--space-1);
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  &__control select:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  &__control select:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  &__empty {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+  }
+
+  &__control .td-spinner {
+    position: absolute;
+    top: 50%;
+    right: var(--space-3);
+    transform: translateY(-50%);
+  }
+
+  .td-alert p {
+    margin: 0 0 var(--space-2);
+  }
+}

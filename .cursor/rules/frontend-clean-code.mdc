@@ -1,0 +1,50 @@
+---
+description: TempoDesk clean React and TypeScript coding conventions
+globs: client/web/src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend Clean Code
+
+## General
+
+- Match the surrounding feature structure before introducing a new pattern.
+- Use functional components, named exports, TypeScript types, and descriptive names.
+- Do not use `any`, TypeScript enums, unexplained abbreviations, or speculative abstractions. Prefer string literal unions and `as const` objects for finite domain values.
+- Comments explain constraints or reasons the code cannot express; never narrate the code.
+
+## Components and Functions
+
+- Pages own routing, data loading, mutations, and feature composition. Feature components own one product behavior. Shared UI components are presentation-only and never call business APIs.
+- Extract a component when it has independent behavior, repeated markup, or a clear responsibility that makes its parent easier to scan. Do not create wrappers that only rename an existing component or HTML element.
+- Keep props small, explicit, and domain-named. Suffix reusable prop types with `Props`. Build only variants required by current callers.
+- A function performs one operation described by its name. Prefer early returns and avoid nested ternaries, deep nesting, unclear boolean parameters, and hidden mutation.
+- Keep one-line event handlers inline; name handlers when they branch, await, validate, or are reused.
+- Reuse existing helpers first. Keep a helper local until it has multiple real consumers.
+
+## Variables and Constants
+
+- Inline a one-use expression when it stays immediately understandable. Create a variable when its name adds domain meaning, removes duplication, or simplifies a condition.
+- Name booleans with `is`, `has`, `can`, or `should`; name collections with plural nouns.
+- Use `SCREAMING_SNAKE_CASE` only for module-level semantic constants. Local and derived `const` bindings use `camelCase`.
+- Keep single-file constants beside their consumer; move them to a feature `constants/` folder only when shared.
+- Put static objects and arrays outside components. Include units in numeric constant names.
+- Use `as const` only for literal or readonly types; use `satisfies` to validate mappings without losing inference.
+
+## State and Effects
+
+- Store the minimum source state and derive everything else during render. Never mirror props or derived values into state.
+- Keep state at its lowest common owner; do not add global state for one feature.
+- Use effects only to synchronize with systems outside React. Prefer event handlers for state transitions and mutations.
+- Every effect has complete dependencies and cleanup for timers, subscriptions, or stale requests.
+- Model mutually exclusive async states explicitly instead of combining unrelated booleans.
+
+## Performance, API, and Errors
+
+- Optimize readability first. Use `useMemo`, `useCallback`, or `React.memo` only for measured expensive work or required stable identity.
+- Use stable domain IDs as list keys; never use array indexes for mutable lists. Do not allocate static arrays, objects, regular expressions, or formatters during every render.
+- Avoid duplicate requests and request waterfalls that can safely run in parallel. Use mutation responses when authoritative; refetch when server state may have changed elsewhere.
+- Keep transport code in API modules and product behavior in feature code. Treat API data as untrusted at the boundary and describe its contract with explicit types.
+- Handle loading, empty, validation, conflict, forbidden, unauthorized, and network states deliberately.
+- Frontend permission checks improve usability only; backend responses remain authoritative.
+- Never persist access tokens, invitation tokens, or authorization decisions in browser storage.

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { API_ERROR_MESSAGE } from '../../constants/errors'
 import {
   DEFAULT_API_TIMEOUT_MS,
@@ -7,9 +7,19 @@ import {
 import { ApiError, toApiError } from './api-error'
 import { assertSafeApiPath } from './api-path'
 
+const AUTH_RECOVERY_EXCLUDED_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/refresh',
+])
+
+type AuthRetryConfig = InternalAxiosRequestConfig & {
+  authRetry?: boolean
+}
+
 export function createApiClient(
   baseUrl: string,
   requestHeaders?: () => HeadersInit,
+  onUnauthorized?: () => Promise<boolean>,
 ) {
   const api = axios.create({
     baseURL: baseUrl.replace(/\/$/, ''),
@@ -41,7 +51,28 @@ export function createApiClient(
 
   api.interceptors.response.use(
     (response) => response,
-    (error: unknown) => Promise.reject(toApiError(error)),
+    async (error: unknown) => {
+      const apiError = toApiError(error)
+      if (apiError.status !== 401 || !axios.isAxiosError(error)) {
+        return Promise.reject(apiError)
+      }
+
+      const config = error.config as AuthRetryConfig | undefined
+      if (
+        !config ||
+        config.authRetry ||
+        AUTH_RECOVERY_EXCLUDED_PATHS.has(config.url ?? '') ||
+        !onUnauthorized
+      ) {
+        return Promise.reject(apiError)
+      }
+
+      config.authRetry = true
+      if (!(await onUnauthorized())) return Promise.reject(apiError)
+
+      config.headers.delete('Authorization')
+      return api.request(config)
+    },
   )
 
   return api

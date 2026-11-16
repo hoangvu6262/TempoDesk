@@ -7,7 +7,7 @@ alwaysApply: false
 # Frontend UI Conventions
 
 - Use functional React components and TypeScript. Export reusable UI components by name and suffix prop types with `Props`.
-- Keep each reusable component with its global SCSS file and behavior tests. Split files only when it makes the component easier to read.
+- Keep each reusable component with its global SCSS file. Split files only when it makes the component easier to read.
 - Build only the variants required by current callers. Reuse existing components before adding wrappers or abstractions.
 - Use semantic design tokens for color, typography, spacing, radius, shadow, and motion. Do not add arbitrary visual values inside component styles.
 - Name global SCSS classes with BEM and the `td-` block prefix: `.td-button`, `.td-button__icon`, `.td-button--primary`.
@@ -20,5 +20,4 @@ alwaysApply: false
 - Derive values during render instead of storing duplicate state. Use effects only to synchronize with systems outside React.
 - Callers own async and business state. Components receive states such as `loading`, `disabled`, and `error`; they do not perform authentication or API calls.
 - Connect labels, descriptions, and errors with stable IDs. Preserve keyboard navigation, focus visibility, and native semantics.
-- Test user-visible behavior and accessibility with Testing Library. Avoid assertions against implementation details or CSS class names.
 - Twenty is a structural and visual reference. Do not copy code from `twenty-front`; reuse substantial `twenty-ui` MIT code only with its required license notice.

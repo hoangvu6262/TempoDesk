@@ -1,0 +1,113 @@
+.td-workspace-page {
+  max-width: 42rem;
+
+  &__eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--color-primary);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: var(--font-size-heading-1);
+    line-height: var(--line-height-tight);
+  }
+
+  &__intro {
+    margin: var(--space-3) 0 var(--space-8);
+    color: var(--color-text-muted);
+  }
+
+  &__form {
+    display: grid;
+    gap: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-large);
+    padding: var(--space-6);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-raised);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  &__state,
+  &__empty {
+    display: flex;
+    min-height: 14rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-large);
+    background: var(--color-surface);
+  }
+
+  &__state {
+    gap: var(--space-3);
+    color: var(--color-text-muted);
+  }
+
+  &__empty {
+    flex-direction: column;
+    padding: var(--space-8);
+    text-align: center;
+  }
+
+  &__empty h1,
+  &__empty p {
+    margin: 0;
+  }
+
+  &__empty p {
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+  }
+
+  &__empty a {
+    margin-top: var(--space-5);
+  }
+}
+
+.td-invitation-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+
+  &__card {
+    width: min(100%, 36rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-large);
+    padding: var(--space-8);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-raised);
+  }
+
+  &__actions {
+    display: grid;
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .td-workspace-page {
+    &__form {
+      padding: var(--space-5);
+    }
+
+    &__actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+
+  .td-invitation-page__card {
+    padding: var(--space-6);
+  }
+}

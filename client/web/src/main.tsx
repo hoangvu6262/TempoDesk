@@ -11,6 +11,7 @@ import { ErrorBoundary } from './app/ErrorBoundary'
 import { ThemeProvider } from './ui/theme/ThemeProvider'
 import { applyInitialTheme } from './ui/theme/theme'
 import { AuthProvider } from './features/auth/state/AuthProvider'
+import { ApiProvider } from './lib/api'
 
 applyInitialTheme()
 
@@ -19,9 +20,11 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <ThemeProvider>
         <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ApiProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ApiProvider>
         </BrowserRouter>
       </ThemeProvider>
     </ErrorBoundary>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, Route, Routes } from 'react-router'
+import { AuthenticatedAppShell } from '../app/AuthenticatedAppShell'
 import { HealthStatus } from '../app/HealthStatus'
 import { UiKitPage } from '../app/UiKitPage'
 import { readClientConfig } from '../config/env'
@@ -10,6 +11,13 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage'
 import { SessionManagementPage } from '../features/sessions/SessionManagementPage'
+import { CreateWorkspacePage } from '../features/workspaces/pages/CreateWorkspacePage'
+import { AcceptInvitationPage } from '../features/workspaces/pages/AcceptInvitationPage'
+import { WorkspaceOverviewPage } from '../features/workspaces/pages/WorkspaceOverviewPage'
+import { WorkspaceMembersPage } from '../features/workspaces/pages/WorkspaceMembersPage'
+import { WorkspaceEntryPage } from '../features/workspaces/routes/WorkspaceEntryPage'
+import { WorkspaceRoute } from '../features/workspaces/routes/WorkspaceRoute'
+import { WorkspaceProvider } from '../features/workspaces/state/WorkspaceProvider'
 import { ProtectedRoute } from './ProtectedRoute'
 
 function Landing() {
@@ -122,15 +130,30 @@ export function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
       <Route
-        path="/app"
+        path="/accept-invitation"
         element={
           <ProtectedRoute>
-            <AppShell>
-              <SessionManagementPage />
-            </AppShell>
+            <AcceptInvitationPage />
           </ProtectedRoute>
         }
       />
+      <Route
+        element={
+          <ProtectedRoute>
+            <WorkspaceProvider />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/app" element={<AuthenticatedAppShell />}>
+          <Route index element={<WorkspaceEntryPage />} />
+          <Route path="workspaces/new" element={<CreateWorkspacePage />} />
+          <Route path="workspaces/:workspaceId" element={<WorkspaceRoute />}>
+            <Route index element={<WorkspaceOverviewPage />} />
+            <Route path="members" element={<WorkspaceMembersPage />} />
+          </Route>
+          <Route path="account/sessions" element={<SessionManagementPage />} />
+        </Route>
+      </Route>
       <Route
         path="/"
         element={

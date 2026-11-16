@@ -6,8 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { readClientConfig } from '../../../config/env'
-import { createApiClient } from '../../../lib/api'
+import { ApiError, useApiRuntime } from '../../../lib/api'
 import {
   createAuthenticationApi,
   type AccessTokenResponse,
@@ -17,55 +16,39 @@ import { AuthContext, type AuthStatus } from './AuthContext'
 
 const REFRESH_EARLY_MS = 30_000
 const MIN_REFRESH_DELAY_MS = 1_000
+const REFRESH_RETRY_BASE_MS = 5_000
+const REFRESH_RETRY_MAX_MS = 60_000
 
 type AuthProviderProps = PropsWithChildren<{ api?: AuthenticationApi }>
 
-function createAuthRuntime(injectedApi?: AuthenticationApi) {
-  if (injectedApi) {
-    return {
-      api: injectedApi,
-      setAccessToken: (value: string | null) => void value,
-    }
-  }
-  let accessToken: string | null = null
-  const client = createApiClient(
-    readClientConfig(import.meta.env).apiBaseUrl,
-    () =>
-      accessToken
-        ? new Headers({ Authorization: `Bearer ${accessToken}` })
-        : new Headers(),
-  )
-  client.defaults.withCredentials = true
-  return {
-    api: createAuthenticationApi(client),
-    setAccessToken: (value: string | null) => {
-      accessToken = value
-    },
-  }
-}
-
 export function AuthProvider({ api, children }: AuthProviderProps) {
+  const { client, setAccessToken, setUnauthorizedHandler } = useApiRuntime()
   const timerRef = useRef<number | undefined>(undefined)
-  const refreshPromiseRef = useRef<Promise<void> | null>(null)
-  const refreshRef = useRef<() => Promise<void>>(async () => {})
+  const refreshPromiseRef = useRef<Promise<boolean> | null>(null)
+  const refreshRef = useRef<() => Promise<boolean>>(async () => false)
+  const hasAccessTokenRef = useRef(false)
+  const refreshFailureCountRef = useRef(0)
   const initializedRef = useRef(false)
   const activeRef = useRef(true)
   const sessionGenerationRef = useRef(0)
   const [status, setStatus] = useState<AuthStatus>('initializing')
-  const [runtime] = useState(() => createAuthRuntime(api))
-  const authApi = runtime.api
+  const [authApi] = useState(() => api ?? createAuthenticationApi(client))
 
   const clearSession = useCallback(() => {
     sessionGenerationRef.current += 1
-    runtime.setAccessToken(null)
+    hasAccessTokenRef.current = false
+    refreshFailureCountRef.current = 0
+    setAccessToken(null)
     window.clearTimeout(timerRef.current)
     timerRef.current = undefined
     if (activeRef.current) setStatus('anonymous')
-  }, [runtime])
+  }, [setAccessToken])
 
   const applyToken = useCallback(
     (result: AccessTokenResponse) => {
-      runtime.setAccessToken(result.accessToken)
+      hasAccessTokenRef.current = true
+      refreshFailureCountRef.current = 0
+      setAccessToken(result.accessToken)
       if (activeRef.current) setStatus('authenticated')
       window.clearTimeout(timerRef.current)
       const delay = Math.max(
@@ -77,8 +60,19 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
         delay,
       )
     },
-    [runtime],
+    [setAccessToken],
   )
+
+  const scheduleRefreshRetry = useCallback(() => {
+    const failureCount = refreshFailureCountRef.current + 1
+    refreshFailureCountRef.current = failureCount
+    const delay = Math.min(
+      REFRESH_RETRY_BASE_MS * 2 ** (failureCount - 1),
+      REFRESH_RETRY_MAX_MS,
+    )
+    window.clearTimeout(timerRef.current)
+    timerRef.current = window.setTimeout(() => void refreshRef.current(), delay)
+  }, [])
 
   const runRefresh = useCallback(() => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current
@@ -86,21 +80,39 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
     const request = authApi
       .refresh()
       .then((result) => {
-        if (sessionGenerationRef.current === generation) applyToken(result)
+        if (!activeRef.current || sessionGenerationRef.current !== generation) {
+          return false
+        }
+        applyToken(result)
+        return true
       })
-      .catch(() => {
-        if (sessionGenerationRef.current === generation) clearSession()
+      .catch((error: unknown) => {
+        if (!activeRef.current || sessionGenerationRef.current !== generation) {
+          return false
+        }
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession()
+          return false
+        }
+        if (!hasAccessTokenRef.current) setStatus('unavailable')
+        scheduleRefreshRetry()
+        return false
       })
       .finally(() => {
         refreshPromiseRef.current = null
       })
     refreshPromiseRef.current = request
     return request
-  }, [applyToken, authApi, clearSession])
+  }, [applyToken, authApi, clearSession, scheduleRefreshRetry])
 
   useEffect(() => {
     refreshRef.current = runRefresh
   }, [runRefresh])
+
+  useEffect(() => {
+    setUnauthorizedHandler(runRefresh)
+    return () => setUnauthorizedHandler(null)
+  }, [runRefresh, setUnauthorizedHandler])
 
   useEffect(() => {
     activeRef.current = true
@@ -123,9 +135,20 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
     [applyToken, authApi],
   )
 
+  const retrySession = useCallback(async () => {
+    if (activeRef.current) setStatus('initializing')
+    await runRefresh()
+  }, [runRefresh])
+
   const value = useMemo(
-    () => ({ status, api: authApi, login, logoutLocal: clearSession }),
-    [authApi, clearSession, login, status],
+    () => ({
+      status,
+      api: authApi,
+      login,
+      retrySession,
+      logoutLocal: clearSession,
+    }),
+    [authApi, clearSession, login, retrySession, status],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

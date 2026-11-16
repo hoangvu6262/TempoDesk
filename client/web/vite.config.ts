@@ -13,7 +13,12 @@ export default defineConfig(({ mode }) => ({
           loadEnv(mode, process.cwd(), '').API_PROXY_TARGET ||
           'http://localhost:5023',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/health': {
+        target:
+          loadEnv(mode, process.cwd(), '').API_PROXY_TARGET ||
+          'http://localhost:5023',
+        changeOrigin: true,
       },
       '/hubs': {
         target:

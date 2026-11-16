@@ -40,7 +40,7 @@ export function readClientConfig(env: {
   VITE_SIGNALR_BASE_URL?: string
 }): ClientConfig {
   return {
-    apiBaseUrl: baseUrl(env.VITE_API_BASE_URL, '/api', 'VITE_API_BASE_URL'),
+    apiBaseUrl: baseUrl(env.VITE_API_BASE_URL, '/', 'VITE_API_BASE_URL'),
     signalRBaseUrl: baseUrl(
       env.VITE_SIGNALR_BASE_URL,
       '/hubs',
