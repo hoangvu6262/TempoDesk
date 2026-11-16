@@ -1,6 +1,6 @@
-namespace TempoDesk.Infrastructure.Workspaces.Persistence;
+namespace TempoDesk.Application.Workspaces;
 
-public static class WorkspaceRoleValues
+public static class WorkspaceRoles
 {
     public const string Owner = "owner";
     public const string Admin = "admin";

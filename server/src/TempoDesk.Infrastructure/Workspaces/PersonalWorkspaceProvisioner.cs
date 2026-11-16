@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TempoDesk.Application.Workspaces;
 using TempoDesk.Infrastructure.Identity;
 using TempoDesk.Infrastructure.Workspaces.Persistence;
 
@@ -42,7 +43,7 @@ internal sealed class PersonalWorkspaceProvisioner(
                 {membershipId},
                 target_workspace.id,
                 {userId},
-                {WorkspaceRoleValues.Owner},
+                {WorkspaceRoles.Owner},
                 {now}
             FROM target_workspace
             ON CONFLICT (workspace_id, user_id) WHERE removed_at IS NULL

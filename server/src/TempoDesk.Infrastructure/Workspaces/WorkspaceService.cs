@@ -7,12 +7,14 @@ namespace TempoDesk.Infrastructure.Workspaces;
 
 internal sealed class WorkspaceService(
     TempoDeskIdentityDbContext context,
+    IWorkspaceAuthorizationService authorization,
     TimeProvider timeProvider) : IWorkspaceService
 {
     public async Task<IReadOnlyList<WorkspaceSummary>> ListAsync(
         Guid userId,
-        CancellationToken cancellationToken = default) =>
-        await context.WorkspaceMembers
+        CancellationToken cancellationToken = default)
+    {
+        var memberships = await context.WorkspaceMembers
             .AsNoTracking()
             .Where(member => member.UserId == userId &&
                 member.RemovedAt == null)
@@ -26,6 +28,12 @@ internal sealed class WorkspaceService(
                 member.Workspace.Type,
                 member.Role))
             .ToListAsync(cancellationToken);
+
+        return memberships
+            .Where(workspace => WorkspacePermissionPolicy.Allows(
+                workspace.Role, WorkspaceAction.ViewWorkspace))
+            .ToList();
+    }
 
     public async Task<WorkspaceResult> CreateTeamAsync(
         Guid userId,
@@ -51,7 +59,7 @@ internal sealed class WorkspaceService(
             Id = Guid.NewGuid(),
             WorkspaceId = workspace.Id,
             UserId = userId,
-            Role = WorkspaceRoleValues.Owner,
+            Role = WorkspaceRoles.Owner,
             CreatedAt = now
         };
 
@@ -70,6 +78,14 @@ internal sealed class WorkspaceService(
         Guid workspaceId,
         CancellationToken cancellationToken = default)
     {
+        var access = await authorization.AuthorizeAsync(
+            userId,
+            workspaceId,
+            WorkspaceAction.ViewWorkspace,
+            cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
         var workspace = await AccessibleWorkspace(userId, workspaceId)
             .Select(member => new WorkspaceSummary(
                 member.WorkspaceId,
@@ -93,6 +109,14 @@ internal sealed class WorkspaceService(
         if (normalized is null)
             return WorkspaceResult.Invalid(error!);
 
+        var access = await authorization.AuthorizeAsync(
+            userId,
+            workspaceId,
+            WorkspaceAction.RenameWorkspace,
+            cancellationToken);
+        if (access.Status != WorkspaceAuthorizationStatus.Allowed)
+            return AuthorizationFailure(access);
+
         var membership = await AccessibleWorkspace(userId, workspaceId)
             .Include(member => member.Workspace)
             .SingleOrDefaultAsync(cancellationToken);
@@ -101,10 +125,6 @@ internal sealed class WorkspaceService(
 
         if (membership.Workspace.Type == WorkspaceTypeValues.Personal)
             return WorkspaceResult.PersonalNameConflict;
-
-        if (membership.Role is not WorkspaceRoleValues.Owner and
-            not WorkspaceRoleValues.Admin)
-            return WorkspaceResult.Denied;
 
         membership.Workspace.Name = normalized;
         membership.Workspace.UpdatedAt = timeProvider.GetUtcNow();
@@ -121,6 +141,16 @@ internal sealed class WorkspaceService(
             member.UserId == userId &&
             member.WorkspaceId == workspaceId &&
             member.RemovedAt == null);
+
+    private static WorkspaceResult AuthorizationFailure(
+        WorkspaceAuthorizationResult authorization) =>
+        authorization.Status switch
+        {
+            WorkspaceAuthorizationStatus.NotFound => WorkspaceResult.Missing,
+            WorkspaceAuthorizationStatus.Forbidden => WorkspaceResult.Denied,
+            _ => throw new InvalidOperationException(
+                "Allowed authorization is not a failure.")
+        };
 
     private static WorkspaceSummary ToSummary(
         Workspace workspace,
