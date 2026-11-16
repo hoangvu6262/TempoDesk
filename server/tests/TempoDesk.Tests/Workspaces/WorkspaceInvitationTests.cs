@@ -78,6 +78,45 @@ public sealed class WorkspaceInvitationTests(
     }
 
     [Fact]
+    public async Task InvitationIssuanceMatchesOwnerAdminMemberViewerMatrix()
+    {
+        await using var context = database.CreateContext();
+        var sender = new CapturingInvitationSender();
+        var service = CreateService(context, sender);
+
+        var adminMember = await service.InviteAsync(
+            scenario.AdminUserId,
+            scenario.TeamWorkspaceId,
+            "admin-member@example.com",
+            WorkspaceRoles.Member);
+        var adminViewer = await service.InviteAsync(
+            scenario.AdminUserId,
+            scenario.TeamWorkspaceId,
+            "admin-viewer@example.com",
+            WorkspaceRoles.Viewer);
+        var memberDenied = await service.InviteAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            "member-denied@example.com",
+            WorkspaceRoles.Member);
+        var viewerDenied = await service.InviteAsync(
+            scenario.ViewerUserId,
+            scenario.TeamWorkspaceId,
+            "viewer-denied@example.com",
+            WorkspaceRoles.Viewer);
+
+        Assert.Equal(WorkspaceMembershipResultStatus.Success,
+            adminMember.Status);
+        Assert.Equal(WorkspaceMembershipResultStatus.Success,
+            adminViewer.Status);
+        Assert.Equal(WorkspaceMembershipResultStatus.Forbidden,
+            memberDenied.Status);
+        Assert.Equal(WorkspaceMembershipResultStatus.Forbidden,
+            viewerDenied.Status);
+        Assert.Equal(2, sender.Messages.Count);
+    }
+
+    [Fact]
     public async Task ActiveInvitationAndMembershipReturnConflict()
     {
         await using var context = database.CreateContext();
