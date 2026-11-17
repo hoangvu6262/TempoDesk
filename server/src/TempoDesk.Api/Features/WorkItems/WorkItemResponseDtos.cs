@@ -44,3 +44,11 @@ public sealed record TaskActivityResponseDto(
     string EventType,
     System.Text.Json.JsonElement Details,
     DateTimeOffset CreatedAt);
+
+public sealed record MyWorkResponseDto(
+    IReadOnlyList<TaskResponseDto> RecentlyCompleted,
+    IReadOnlyList<TaskResponseDto> Overdue,
+    IReadOnlyList<TaskResponseDto> Today,
+    IReadOnlyList<TaskResponseDto> Upcoming,
+    IReadOnlyList<TaskResponseDto> Later,
+    IReadOnlyList<TaskResponseDto> Unscheduled);

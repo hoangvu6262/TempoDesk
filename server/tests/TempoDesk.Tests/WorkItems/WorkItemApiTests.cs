@@ -131,6 +131,31 @@ public sealed class WorkItemApiTests
             typeof(TaskDetailsController),
             typeof(AuthorizeAttribute)));
 
+    [Fact]
+    public async Task MyWorkUsesAuthenticatedActorAndTimeZone()
+    {
+        var summary = new MyWorkSummary(
+            [], [], [], [], [], []);
+        var service = new FakeMyWorkService
+        {
+            Result = new(WorkItemResultStatus.Success, summary)
+        };
+        var controller = Authenticate(new MyWorkController(service));
+
+        var action = await controller.Get(
+            "Asia/Shanghai", CancellationToken.None);
+
+        Assert.Equal(ActorUserId, service.ActorUserId);
+        Assert.Equal("Asia/Shanghai", service.TimeZone);
+        Assert.IsType<OkObjectResult>(action);
+    }
+
+    [Fact]
+    public void MyWorkControllerRequiresAuthorization() =>
+        Assert.NotNull(Attribute.GetCustomAttribute(
+            typeof(MyWorkController),
+            typeof(AuthorizeAttribute)));
+
     private static T Authenticate<T>(T controller) where T : ControllerBase
     {
         var identity = new ClaimsIdentity(
@@ -284,5 +309,23 @@ public sealed class WorkItemApiTests
 
         private Task<WorkItemResult<TaskSummary>> Return() =>
             Task.FromResult(Result);
+    }
+
+    private sealed class FakeMyWorkService : IMyWorkService
+    {
+        public WorkItemResult<MyWorkSummary> Result { get; init; } =
+            new(WorkItemResultStatus.NotFound);
+        public Guid ActorUserId { get; private set; }
+        public string? TimeZone { get; private set; }
+
+        public Task<WorkItemResult<MyWorkSummary>> GetAsync(
+            Guid actorUserId,
+            string? timeZone,
+            CancellationToken cancellationToken = default)
+        {
+            ActorUserId = actorUserId;
+            TimeZone = timeZone;
+            return Task.FromResult(Result);
+        }
     }
 }
