@@ -29,3 +29,18 @@ public sealed record TaskResponseDto(
     DateTimeOffset UpdatedAt,
     IReadOnlyList<AssigneeResponseDto> Assignees,
     IReadOnlyList<LabelResponseDto> Labels);
+
+public sealed record TaskCommentResponseDto(
+    Guid Id,
+    Guid AuthorUserId,
+    string AuthorEmail,
+    string Body,
+    DateTimeOffset CreatedAt);
+
+public sealed record TaskActivityResponseDto(
+    Guid Id,
+    Guid ActorUserId,
+    string ActorEmail,
+    string EventType,
+    System.Text.Json.JsonElement Details,
+    DateTimeOffset CreatedAt);

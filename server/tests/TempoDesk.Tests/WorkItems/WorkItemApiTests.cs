@@ -100,6 +100,37 @@ public sealed class WorkItemApiTests
             typeof(TasksController),
             typeof(AuthorizeAttribute)));
 
+    [Fact]
+    public async Task AddCommentUsesAuthenticatedActor()
+    {
+        var comment = new TaskCommentSummary(
+            Guid.NewGuid(),
+            ActorUserId,
+            "member@example.com",
+            "Ready",
+            DateTimeOffset.UtcNow);
+        var service = new FakeTaskService
+        {
+            CommentResult = new(WorkItemResultStatus.Success, comment)
+        };
+        var controller = Authenticate(new TaskDetailsController(service));
+
+        var action = await controller.AddComment(
+            WorkspaceId,
+            Guid.NewGuid(),
+            new AddTaskCommentRequestDto("Ready"),
+            CancellationToken.None);
+
+        Assert.Equal(ActorUserId, service.ActorUserId);
+        Assert.IsType<CreatedAtActionResult>(action);
+    }
+
+    [Fact]
+    public void TaskDetailsControllerRequiresAuthorization() =>
+        Assert.NotNull(Attribute.GetCustomAttribute(
+            typeof(TaskDetailsController),
+            typeof(AuthorizeAttribute)));
+
     private static T Authenticate<T>(T controller) where T : ControllerBase
     {
         var identity = new ClaimsIdentity(
@@ -183,6 +214,9 @@ public sealed class WorkItemApiTests
         public WorkItemResult<TaskSummary> Result { get; init; } =
             new(WorkItemResultStatus.NotFound);
         public bool UpdateCalled { get; private set; }
+        public Guid ActorUserId { get; private set; }
+        public WorkItemResult<TaskCommentSummary> CommentResult { get; init; } =
+            new(WorkItemResultStatus.NotFound);
 
         public Task<WorkItemResult<IReadOnlyList<TaskSummary>>> ListAsync(
             Guid actorUserId, Guid workspaceId, Guid projectId,
@@ -236,8 +270,11 @@ public sealed class WorkItemApiTests
 
         public Task<WorkItemResult<TaskCommentSummary>> AddCommentAsync(
             Guid actorUserId, Guid workspaceId, Guid taskId, string? body,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken = default)
+        {
+            ActorUserId = actorUserId;
+            return Task.FromResult(CommentResult);
+        }
 
         public Task<WorkItemResult<IReadOnlyList<TaskActivitySummary>>>
             ListActivityAsync(

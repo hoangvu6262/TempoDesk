@@ -289,31 +289,315 @@ internal sealed class TaskService(
     public Task<WorkItemResult<TaskSummary>> ReplaceAssigneesAsync(
         Guid actorUserId, Guid workspaceId, Guid taskId,
         IReadOnlyCollection<Guid> userIds,
-        CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        CancellationToken cancellationToken = default) => ReplaceAssignees(
+        actorUserId, workspaceId, taskId, userIds, cancellationToken);
 
     public Task<WorkItemResult<TaskSummary>> ReplaceLabelsAsync(
         Guid actorUserId, Guid workspaceId, Guid taskId,
         IReadOnlyCollection<string?> names,
-        CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        CancellationToken cancellationToken = default) => ReplaceLabels(
+        actorUserId, workspaceId, taskId, names, cancellationToken);
 
     public Task<WorkItemResult<IReadOnlyList<TaskCommentSummary>>>
         ListCommentsAsync(
             Guid actorUserId, Guid workspaceId, Guid taskId,
-            CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+            CancellationToken cancellationToken = default) => ListComments(
+        actorUserId, workspaceId, taskId, cancellationToken);
 
     public Task<WorkItemResult<TaskCommentSummary>> AddCommentAsync(
         Guid actorUserId, Guid workspaceId, Guid taskId, string? body,
-        CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        CancellationToken cancellationToken = default) => AddComment(
+        actorUserId, workspaceId, taskId, body, cancellationToken);
 
     public Task<WorkItemResult<IReadOnlyList<TaskActivitySummary>>>
         ListActivityAsync(
             Guid actorUserId, Guid workspaceId, Guid taskId,
-            CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+            CancellationToken cancellationToken = default) => ListActivity(
+        actorUserId, workspaceId, taskId, cancellationToken);
+
+    private async Task<WorkItemResult<TaskSummary>> ReplaceAssignees(
+        Guid actorUserId,
+        Guid workspaceId,
+        Guid taskId,
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken)
+    {
+        var access = await AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.ManageTasks,
+            cancellationToken);
+        if (access is not null)
+            return ConvertFailure<TaskSummary>(access);
+
+        var desired = userIds.Distinct().ToHashSet();
+        var activeUsers = await context.WorkspaceMembers
+            .Where(member => member.WorkspaceId == workspaceId &&
+                member.RemovedAt == null && desired.Contains(member.UserId))
+            .Select(member => member.UserId)
+            .ToListAsync(cancellationToken);
+        if (activeUsers.Count != desired.Count)
+        {
+            return Invalid<TaskSummary>("assigneeIds",
+                "Every assignee must be an active workspace member.");
+        }
+
+        var task = await TaskWithDetails(workspaceId)
+            .SingleOrDefaultAsync(item => item.Id == taskId,
+                cancellationToken);
+        if (task is null)
+            return new(WorkItemResultStatus.NotFound);
+
+        var current = task.Assignees.Select(link => link.UserId).ToHashSet();
+        var added = desired.Except(current).Order().ToArray();
+        var removed = current.Except(desired).Order().ToArray();
+        if (added.Length == 0 && removed.Length == 0)
+            return new(WorkItemResultStatus.Success, ToSummary(task));
+
+        foreach (var link in task.Assignees
+            .Where(link => removed.Contains(link.UserId)).ToList())
+        {
+            task.Assignees.Remove(link);
+            context.TaskAssignees.Remove(link);
+        }
+
+        var now = timeProvider.GetUtcNow();
+        foreach (var userId in added)
+        {
+            context.TaskAssignees.Add(new TaskAssignee
+            {
+                WorkspaceId = workspaceId,
+                TaskId = task.Id,
+                UserId = userId,
+                AssignedAt = now
+            });
+        }
+        context.TaskActivityLogs.Add(Activity(
+            task, actorUserId, TaskActivityTypes.AssigneesChanged,
+            new { addedUserIds = added, removedUserIds = removed }, now));
+
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(
+            WorkItemResultStatus.Success,
+            await ReloadSummaryAsync(workspaceId, task.Id, cancellationToken));
+    }
+
+    private async Task<WorkItemResult<TaskSummary>> ReplaceLabels(
+        Guid actorUserId,
+        Guid workspaceId,
+        Guid taskId,
+        IReadOnlyCollection<string?> names,
+        CancellationToken cancellationToken)
+    {
+        var normalized = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var name in names)
+        {
+            var validation = WorkItemValidation.Label(name);
+            if (validation.Errors.Count > 0)
+            {
+                return Invalid<TaskSummary>("labels",
+                    "Every label name must be non-blank and at most 100 characters.");
+            }
+            normalized.TryAdd(validation.NormalizedValue!, validation.Value!);
+        }
+
+        var access = await AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.ManageTasks,
+            cancellationToken);
+        if (access is not null)
+            return ConvertFailure<TaskSummary>(access);
+
+        var task = await TaskWithDetails(workspaceId)
+            .SingleOrDefaultAsync(item => item.Id == taskId,
+                cancellationToken);
+        if (task is null)
+            return new(WorkItemResultStatus.NotFound);
+
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        foreach (var (normalizedName, displayName) in normalized)
+        {
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO public.labels
+                    (id, workspace_id, name, normalized_name, created_at)
+                VALUES
+                    ({Guid.NewGuid()}, {workspaceId}, {displayName},
+                     {normalizedName}, {now})
+                ON CONFLICT (workspace_id, normalized_name) DO NOTHING
+                """, cancellationToken);
+        }
+
+        var normalizedNames = normalized.Keys.ToArray();
+        var labels = await context.Labels
+            .Where(label => label.WorkspaceId == workspaceId &&
+                normalizedNames.Contains(label.NormalizedName))
+            .ToListAsync(cancellationToken);
+        var desired = labels.Select(label => label.Id).ToHashSet();
+        var current = task.TaskLabels.Select(link => link.LabelId).ToHashSet();
+        var added = desired.Except(current).Order().ToArray();
+        var removed = current.Except(desired).Order().ToArray();
+
+        foreach (var link in task.TaskLabels
+            .Where(link => removed.Contains(link.LabelId)).ToList())
+        {
+            task.TaskLabels.Remove(link);
+            context.TaskLabels.Remove(link);
+        }
+        foreach (var labelId in added)
+        {
+            context.TaskLabels.Add(new TaskLabel
+            {
+                WorkspaceId = workspaceId,
+                TaskId = task.Id,
+                LabelId = labelId
+            });
+        }
+
+        if (added.Length > 0 || removed.Length > 0)
+        {
+            context.TaskActivityLogs.Add(Activity(
+                task, actorUserId, TaskActivityTypes.LabelsChanged,
+                new { addedLabelIds = added, removedLabelIds = removed }, now));
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return new(
+            WorkItemResultStatus.Success,
+            await ReloadSummaryAsync(workspaceId, task.Id, cancellationToken));
+    }
+
+    private async Task<WorkItemResult<IReadOnlyList<TaskCommentSummary>>>
+        ListComments(
+            Guid actorUserId,
+            Guid workspaceId,
+            Guid taskId,
+            CancellationToken cancellationToken)
+    {
+        var access = await AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.ViewWorkItems,
+            cancellationToken);
+        if (access is not null)
+            return ConvertFailure<IReadOnlyList<TaskCommentSummary>>(access);
+        if (!await ActiveTasks(workspaceId).AnyAsync(
+            task => task.Id == taskId, cancellationToken))
+        {
+            return new(WorkItemResultStatus.NotFound);
+        }
+
+        var comments = await context.TaskComments
+            .Where(comment => comment.WorkspaceId == workspaceId &&
+                comment.TaskId == taskId)
+            .OrderBy(comment => comment.CreatedAt)
+            .ThenBy(comment => comment.Id)
+            .Select(comment => new TaskCommentSummary(
+                comment.Id,
+                comment.AuthorUserId,
+                comment.AuthorUser.Email!,
+                comment.Body,
+                comment.CreatedAt))
+            .ToListAsync(cancellationToken);
+        return new(WorkItemResultStatus.Success, comments);
+    }
+
+    private async Task<WorkItemResult<TaskCommentSummary>> AddComment(
+        Guid actorUserId,
+        Guid workspaceId,
+        Guid taskId,
+        string? body,
+        CancellationToken cancellationToken)
+    {
+        var validation = WorkItemValidation.Comment(body);
+        if (validation.Errors.Count > 0)
+            return Invalid<TaskCommentSummary>(validation.Errors);
+        var access = await AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.ManageTasks,
+            cancellationToken);
+        if (access is not null)
+            return ConvertFailure<TaskCommentSummary>(access);
+        var task = await ActiveTasks(workspaceId)
+            .SingleOrDefaultAsync(item => item.Id == taskId,
+                cancellationToken);
+        if (task is null)
+            return new(WorkItemResultStatus.NotFound);
+
+        var now = timeProvider.GetUtcNow();
+        var comment = new TaskComment
+        {
+            Id = Guid.NewGuid(),
+            WorkspaceId = workspaceId,
+            TaskId = task.Id,
+            AuthorUserId = actorUserId,
+            Body = validation.Value!,
+            CreatedAt = now
+        };
+        context.TaskComments.Add(comment);
+        context.TaskActivityLogs.Add(Activity(
+            task, actorUserId, TaskActivityTypes.CommentAdded,
+            new { commentId = comment.Id }, now));
+
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        var email = await context.Users
+            .Where(user => user.Id == actorUserId)
+            .Select(user => user.Email!)
+            .SingleAsync(cancellationToken);
+        return new(
+            WorkItemResultStatus.Success,
+            new TaskCommentSummary(
+                comment.Id, actorUserId, email, comment.Body, now));
+    }
+
+    private async Task<WorkItemResult<IReadOnlyList<TaskActivitySummary>>>
+        ListActivity(
+            Guid actorUserId,
+            Guid workspaceId,
+            Guid taskId,
+            CancellationToken cancellationToken)
+    {
+        var access = await AuthorizeAsync(
+            actorUserId, workspaceId, WorkspaceAction.ViewWorkItems,
+            cancellationToken);
+        if (access is not null)
+            return ConvertFailure<IReadOnlyList<TaskActivitySummary>>(access);
+        if (!await ActiveTasks(workspaceId).AnyAsync(
+            task => task.Id == taskId, cancellationToken))
+        {
+            return new(WorkItemResultStatus.NotFound);
+        }
+
+        var rows = await context.TaskActivityLogs
+            .Where(activity => activity.WorkspaceId == workspaceId &&
+                activity.TaskId == taskId)
+            .Include(activity => activity.ActorUser)
+            .AsNoTracking()
+            .OrderBy(activity => activity.CreatedAt)
+            .ThenBy(activity => activity.Id)
+            .ToListAsync(cancellationToken);
+        var activity = rows.Select(item => new TaskActivitySummary(
+            item.Id,
+            item.ActorUserId,
+            item.ActorUser.Email!,
+            item.EventType,
+            item.Details.RootElement.Clone(),
+            item.CreatedAt)).ToList();
+        return new(WorkItemResultStatus.Success, activity);
+    }
+
+    private async Task<TaskSummary> ReloadSummaryAsync(
+        Guid workspaceId,
+        Guid taskId,
+        CancellationToken cancellationToken)
+    {
+        context.ChangeTracker.Clear();
+        var task = await TaskWithDetails(workspaceId)
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == taskId, cancellationToken);
+        return ToSummary(task);
+    }
 
     private async Task<WorkItemResult<TaskSummary>> SaveMutationAsync(
         WorkTask task,

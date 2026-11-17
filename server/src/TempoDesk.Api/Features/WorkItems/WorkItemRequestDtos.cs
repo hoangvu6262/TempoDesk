@@ -29,3 +29,11 @@ public sealed record UpdateTaskRequestDto(
     JsonElement? DueDate = null,
     JsonElement? EstimatedMinutes = null,
     JsonElement? ParentTaskId = null);
+
+public sealed record ReplaceTaskAssigneesRequestDto(
+    IReadOnlyList<Guid>? UserIds);
+
+public sealed record ReplaceTaskLabelsRequestDto(
+    IReadOnlyList<string?>? Names);
+
+public sealed record AddTaskCommentRequestDto(string? Body);

@@ -39,6 +39,23 @@ internal static class WorkItemControllerSupport
         task.Labels.Select(item => new LabelResponseDto(
             item.Id, item.Name)).ToList());
 
+    public static TaskCommentResponseDto ToDto(TaskCommentSummary comment) =>
+        new(
+            comment.Id,
+            comment.AuthorUserId,
+            comment.AuthorEmail,
+            comment.Body,
+            comment.CreatedAt);
+
+    public static TaskActivityResponseDto ToDto(
+        TaskActivitySummary activity) => new(
+        activity.Id,
+        activity.ActorUserId,
+        activity.ActorEmail,
+        activity.EventType,
+        activity.Details,
+        activity.CreatedAt);
+
     public static IActionResult TaskSuccess(
         ControllerBase controller,
         TaskSummary task)
