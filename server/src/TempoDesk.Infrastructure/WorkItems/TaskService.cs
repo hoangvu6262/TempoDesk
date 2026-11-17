@@ -283,7 +283,7 @@ internal sealed class TaskService(
         }
 
         return await SaveMutationAsync(
-            task, workspaceId, cancellationToken);
+            task, workspaceId, cancellationToken, includeDeletedOnConflict: true);
     }
 
     public Task<WorkItemResult<TaskSummary>> ReplaceAssigneesAsync(
@@ -602,7 +602,8 @@ internal sealed class TaskService(
     private async Task<WorkItemResult<TaskSummary>> SaveMutationAsync(
         WorkTask task,
         Guid workspaceId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeDeletedOnConflict = false)
     {
         try
         {
@@ -612,7 +613,12 @@ internal sealed class TaskService(
         catch (DbUpdateConcurrencyException)
         {
             context.ChangeTracker.Clear();
-            var currentVersion = await ActiveTasks(workspaceId)
+            var candidates = includeDeletedOnConflict
+                ? context.Tasks.IgnoreQueryFilters().Where(item =>
+                    item.WorkspaceId == workspaceId &&
+                    item.Project.ArchivedAt == null)
+                : ActiveTasks(workspaceId);
+            var currentVersion = await candidates
                 .Where(item => item.Id == task.Id)
                 .Select(item => (long?)item.RowVersion)
                 .SingleOrDefaultAsync(cancellationToken);

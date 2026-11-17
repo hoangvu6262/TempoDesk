@@ -247,6 +247,50 @@ public sealed class TaskServiceTests(
         Assert.NotNull(rows[keptDeleted.Value.Id].DeletedAt);
     }
 
+    [Fact]
+    public async Task StaleRestoreReturnsConflictForDeletedTask()
+    {
+        var scenario = await WorkItemScenario.CreateAsync(database, Now);
+        var projectId = await SeedProjectAsync(
+            scenario.TeamWorkspaceId, "Delivery");
+        Guid taskId;
+        long deletedVersion;
+        await using (var first = database.CreateContext())
+        {
+            var service = Service(first);
+            var created = await service.CreateAsync(
+                scenario.MemberUserId,
+                scenario.TeamWorkspaceId,
+                projectId,
+                Mutation("Task"));
+            taskId = created.Value!.Id;
+            var deleted = await service.DeleteAsync(
+                scenario.MemberUserId,
+                scenario.TeamWorkspaceId,
+                taskId,
+                created.Value.RowVersion);
+            deletedVersion = deleted.Value!.RowVersion;
+        }
+
+        await using (var concurrent = database.CreateContext())
+        {
+            var task = await concurrent.Tasks.IgnoreQueryFilters()
+                .SingleAsync(item => item.Id == taskId);
+            task.Description = "Concurrent change";
+            await concurrent.SaveChangesAsync();
+        }
+
+        await using var stale = database.CreateContext();
+        var result = await Service(stale).RestoreAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            taskId,
+            deletedVersion);
+
+        Assert.Equal(WorkItemResultStatus.Conflict, result.Status);
+        Assert.True(result.CurrentRowVersion > deletedVersion);
+    }
+
     private async Task<Guid> SeedProjectAsync(
         Guid workspaceId,
         string name)
