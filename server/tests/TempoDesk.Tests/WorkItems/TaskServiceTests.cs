@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TempoDesk.Application.WorkItems;
+using TempoDesk.Application.Workspaces;
 using TempoDesk.Infrastructure.Identity;
 using TempoDesk.Infrastructure.WorkItems;
 using TempoDesk.Infrastructure.WorkItems.Persistence;
@@ -53,6 +54,86 @@ public sealed class TaskServiceTests(
             Mutation("Denied"));
 
         Assert.Equal(WorkItemResultStatus.Forbidden, result.Status);
+    }
+
+    [Theory]
+    [InlineData(WorkspaceRoles.Owner, true)]
+    [InlineData(WorkspaceRoles.Admin, true)]
+    [InlineData(WorkspaceRoles.Member, true)]
+    [InlineData(WorkspaceRoles.Viewer, false)]
+    public async Task CreateTaskFollowsPermissionMatrix(
+        string role,
+        bool allowed)
+    {
+        var scenario = await WorkItemScenario.CreateAsync(database, Now);
+        var projectId = await SeedProjectAsync(
+            scenario.TeamWorkspaceId, "Delivery");
+        await using var context = database.CreateContext();
+
+        var result = await Service(context).CreateAsync(
+            scenario.UserForRole(role),
+            scenario.TeamWorkspaceId,
+            projectId,
+            Mutation(role));
+
+        Assert.Equal(
+            allowed ? WorkItemResultStatus.Success :
+                WorkItemResultStatus.Forbidden,
+            result.Status);
+    }
+
+    [Fact]
+    public async Task RemovedMemberAndForeignOrArchivedTaskReturnNotFound()
+    {
+        var scenario = await WorkItemScenario.CreateAsync(database, Now);
+        var teamProject = await SeedProjectAsync(
+            scenario.TeamWorkspaceId, "Team");
+        var otherProject = await SeedProjectAsync(
+            scenario.OtherWorkspaceId, "Other");
+        await using var context = database.CreateContext();
+        var teamTask = await Service(context).CreateAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            teamProject,
+            Mutation("Team task"));
+        var foreignTask = new WorkTask
+        {
+            Id = Guid.NewGuid(),
+            WorkspaceId = scenario.OtherWorkspaceId,
+            ProjectId = otherProject,
+            CreatedByUserId = scenario.UnrelatedUserId,
+            Title = "Foreign",
+            SortKey = 1000m,
+            CreatedAt = Now,
+            UpdatedAt = Now
+        };
+        context.Tasks.Add(foreignTask);
+        var membership = await context.WorkspaceMembers.SingleAsync(member =>
+            member.WorkspaceId == scenario.TeamWorkspaceId &&
+            member.UserId == scenario.MemberUserId);
+        membership.RemovedAt = Now;
+        await context.SaveChangesAsync();
+
+        var removed = await Service(context).GetAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            teamTask.Value!.Id);
+        var foreign = await Service(context).GetAsync(
+            scenario.OwnerUserId,
+            scenario.TeamWorkspaceId,
+            foreignTask.Id);
+        var project = await context.Projects.SingleAsync(item =>
+            item.Id == teamProject);
+        project.ArchivedAt = Now;
+        await context.SaveChangesAsync();
+        var archived = await Service(context).GetAsync(
+            scenario.OwnerUserId,
+            scenario.TeamWorkspaceId,
+            teamTask.Value.Id);
+
+        Assert.Equal(WorkItemResultStatus.NotFound, removed.Status);
+        Assert.Equal(WorkItemResultStatus.NotFound, foreign.Status);
+        Assert.Equal(WorkItemResultStatus.NotFound, archived.Status);
     }
 
     [Fact]

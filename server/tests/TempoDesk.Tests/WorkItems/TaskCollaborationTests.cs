@@ -36,11 +36,22 @@ public sealed class TaskCollaborationTests(
             scenario.TeamWorkspaceId,
             taskId,
             [scenario.UnrelatedUserId]);
+        var viewerMembership = await context.WorkspaceMembers.SingleAsync(
+            member => member.WorkspaceId == scenario.TeamWorkspaceId &&
+                member.UserId == scenario.ViewerUserId);
+        viewerMembership.RemovedAt = Now;
+        await context.SaveChangesAsync();
+        var removed = await service.ReplaceAssigneesAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            taskId,
+            [scenario.ViewerUserId]);
 
         Assert.Equal(WorkItemResultStatus.Success, assigned.Status);
         Assert.Equal(2, assigned.Value!.Assignees.Count);
         Assert.Equal(WorkItemResultStatus.Invalid, invalid.Status);
         Assert.Contains("assigneeIds", invalid.Errors!.Keys);
+        Assert.Equal(WorkItemResultStatus.Invalid, removed.Status);
     }
 
     [Fact]
