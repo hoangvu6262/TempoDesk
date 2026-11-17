@@ -132,7 +132,9 @@ Deleting a task sets its existing `DeletedAt` timestamp; no `isDeleted` column
 or migration is added. Deleting a parent soft-deletes its active direct
 subtasks in the same transaction with the same timestamp. Restoring the parent
 restores only subtasks whose `DeletedAt` equals that parent's deletion
-timestamp, so a subtask deleted earlier is not restored accidentally. Normal
+timestamp and whose deletion activity names that parent as `cascadeRootTaskId`.
+The activity marker disambiguates two separate deletions that receive the same
+clock value, so a subtask deleted earlier is not restored accidentally. Normal
 reads continue to use the SCRUM-38 task query filter.
 
 ## Optimistic Concurrency

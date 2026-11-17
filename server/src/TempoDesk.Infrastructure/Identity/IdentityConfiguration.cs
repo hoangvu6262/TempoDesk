@@ -110,6 +110,7 @@ public static class IdentityConfiguration
             WorkspaceAuthorizationService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IWorkspaceMembershipService,
             WorkspaceMembershipService>();
         services.AddScoped<IAccountRegistrationService,

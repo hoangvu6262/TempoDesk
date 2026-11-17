@@ -304,7 +304,7 @@ PATCH applies only specified fields, validates the complete resulting state and 
 
 - [ ] **Step 4: Implement approved delete/restore cascade**
 
-Delete loads parent plus active children, checks parent version, and writes one `now` to every affected `DeletedAt`. Restore uses `IgnoreQueryFilters()`, captures the parent's deletion timestamp, and restores only children with the same timestamp. Write deletion/restoration activity per affected task in the same transaction.
+Delete queries active children directly, checks parent version, writes one `now` to every affected `DeletedAt`, and records `cascadeRootTaskId` in deletion activity. Restore uses `IgnoreQueryFilters()` and restores only children with both the same timestamp and the parent's cascade marker. The marker prevents separate deletions with identical clock values from being conflated. Write deletion/restoration activity per affected task in the same transaction.
 
 - [ ] **Step 5: Add transport, ETag parsing, register, and verify**
 
@@ -541,7 +541,7 @@ git commit -m "test(api): verify SCRUM-39 acceptance"
 - [ ] Tests cover Owner, Admin, Member, Viewer, removed members, and unrelated users.
 - [ ] One-level nesting, active-member assignments, normalized labels, immutable comments/activity, and actor provenance are enforced.
 - [ ] Task update/delete/restore require current row versions; stale writes do not overwrite data.
-- [ ] Parent delete/restore preserves the timestamp-matched child behavior.
+- [ ] Parent delete/restore preserves timestamp-and-cascade-marker child behavior.
 - [ ] My Work handles IANA zones, DST, six exclusive groups, Personal/Team scope, and no duplicates.
 - [ ] No migration, dependency, sprint/backlog feature, project membership, UI, or unrelated refactor was added.
 - [ ] Full tests, build, and `git diff --check` pass.

@@ -9,3 +9,23 @@ public sealed record CreateProjectRequestDto(
 public sealed record UpdateProjectRequestDto(
     JsonElement? Name,
     JsonElement? Description);
+
+public sealed record CreateTaskRequestDto(
+    string? Title,
+    string? Description,
+    string? Priority,
+    string? Status,
+    DateOnly? StartDate,
+    DateOnly? DueDate,
+    int? EstimatedMinutes,
+    Guid? ParentTaskId);
+
+public sealed record UpdateTaskRequestDto(
+    JsonElement? Title = null,
+    JsonElement? Description = null,
+    JsonElement? Priority = null,
+    JsonElement? Status = null,
+    JsonElement? StartDate = null,
+    JsonElement? DueDate = null,
+    JsonElement? EstimatedMinutes = null,
+    JsonElement? ParentTaskId = null);

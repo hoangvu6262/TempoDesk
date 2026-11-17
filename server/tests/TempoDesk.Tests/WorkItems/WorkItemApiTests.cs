@@ -49,6 +49,57 @@ public sealed class WorkItemApiTests
             typeof(ProjectsController),
             typeof(AuthorizeAttribute)));
 
+    [Fact]
+    public async Task TaskReadSetsQuotedRowVersionEtag()
+    {
+        var task = TaskSummary(7);
+        var service = new FakeTaskService
+        {
+            Result = new(WorkItemResultStatus.Success, task)
+        };
+        var controller = Authenticate(new TasksController(service));
+
+        var action = await controller.Read(
+            WorkspaceId, task.Id, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(action);
+        Assert.Equal("\"7\"", controller.Response.Headers.ETag);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("7")]
+    [InlineData("W/\"7\"")]
+    [InlineData("\"0\"")]
+    [InlineData("*")]
+    public async Task TaskUpdateRejectsInvalidIfMatch(string? value)
+    {
+        var service = new FakeTaskService
+        {
+            Result = new(WorkItemResultStatus.Success, TaskSummary(7))
+        };
+        var controller = Authenticate(new TasksController(service));
+        if (value is not null)
+            controller.Request.Headers.IfMatch = value;
+
+        var action = await controller.Update(
+            WorkspaceId,
+            service.Result.Value!.Id,
+            new UpdateTaskRequestDto(),
+            CancellationToken.None);
+
+        var invalid = Assert.IsType<ObjectResult>(action);
+        Assert.IsType<ValidationProblemDetails>(invalid.Value);
+        Assert.False(service.UpdateCalled);
+    }
+
+    [Fact]
+    public void TaskControllerRequiresAuthorization() =>
+        Assert.NotNull(Attribute.GetCustomAttribute(
+            typeof(TasksController),
+            typeof(AuthorizeAttribute)));
+
     private static T Authenticate<T>(T controller) where T : ControllerBase
     {
         var identity = new ClaimsIdentity(
@@ -105,5 +156,96 @@ public sealed class WorkItemApiTests
             ActorUserId = actorUserId;
             return Task.FromResult(Result);
         }
+    }
+
+    private static TaskSummary TaskSummary(long rowVersion) => new(
+        Guid.NewGuid(),
+        WorkspaceId,
+        Guid.NewGuid(),
+        null,
+        "Task",
+        null,
+        WorkItemPriorityValues.None,
+        WorkItemStatusValues.Todo,
+        null,
+        null,
+        null,
+        WorkItemSourceTypeValues.Manual,
+        1000m,
+        rowVersion,
+        DateTimeOffset.UtcNow,
+        DateTimeOffset.UtcNow,
+        [],
+        []);
+
+    private sealed class FakeTaskService : ITaskService
+    {
+        public WorkItemResult<TaskSummary> Result { get; init; } =
+            new(WorkItemResultStatus.NotFound);
+        public bool UpdateCalled { get; private set; }
+
+        public Task<WorkItemResult<IReadOnlyList<TaskSummary>>> ListAsync(
+            Guid actorUserId, Guid workspaceId, Guid projectId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new WorkItemResult<IReadOnlyList<TaskSummary>>(
+                Result.Status,
+                Result.Value is null ? null : [Result.Value],
+                Result.Errors));
+
+        public Task<WorkItemResult<TaskSummary>> CreateAsync(
+            Guid actorUserId, Guid workspaceId, Guid projectId,
+            TaskMutation task,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<TaskSummary>> GetAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<TaskSummary>> UpdateAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId,
+            TaskPatch patch, long rowVersion,
+            CancellationToken cancellationToken = default)
+        {
+            UpdateCalled = true;
+            return Return();
+        }
+
+        public Task<WorkItemResult<TaskSummary>> DeleteAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId, long rowVersion,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<TaskSummary>> RestoreAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId, long rowVersion,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<TaskSummary>> ReplaceAssigneesAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId,
+            IReadOnlyCollection<Guid> userIds,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<TaskSummary>> ReplaceLabelsAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId,
+            IReadOnlyCollection<string?> names,
+            CancellationToken cancellationToken = default) => Return();
+
+        public Task<WorkItemResult<IReadOnlyList<TaskCommentSummary>>>
+            ListCommentsAsync(
+                Guid actorUserId, Guid workspaceId, Guid taskId,
+                CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<WorkItemResult<TaskCommentSummary>> AddCommentAsync(
+            Guid actorUserId, Guid workspaceId, Guid taskId, string? body,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<WorkItemResult<IReadOnlyList<TaskActivitySummary>>>
+            ListActivityAsync(
+                Guid actorUserId, Guid workspaceId, Guid taskId,
+                CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        private Task<WorkItemResult<TaskSummary>> Return() =>
+            Task.FromResult(Result);
     }
 }
