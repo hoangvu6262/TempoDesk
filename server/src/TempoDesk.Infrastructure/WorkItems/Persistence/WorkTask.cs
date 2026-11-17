@@ -1,4 +1,5 @@
 using TempoDesk.Infrastructure.Identity;
+using TempoDesk.Application.WorkItems;
 
 namespace TempoDesk.Infrastructure.WorkItems.Persistence;
 
