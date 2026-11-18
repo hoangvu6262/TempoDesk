@@ -304,7 +304,7 @@ PATCH applies only specified fields, validates the complete resulting state and 
 
 - [ ] **Step 4: Implement approved delete/restore cascade**
 
-Delete queries active children directly, checks parent version, writes one `now` to every affected `DeletedAt`, and records `cascadeRootTaskId` in deletion activity. Restore uses `IgnoreQueryFilters()` and restores only children with both the same timestamp and the parent's cascade marker. The marker prevents separate deletions with identical clock values from being conflated. Write deletion/restoration activity per affected task in the same transaction.
+Delete queries active children directly, checks parent version, chooses a timestamp later than prior deletion activity when the clock has not advanced, writes it to every affected `DeletedAt`, and records `cascadeRootTaskId`. Restore uses `IgnoreQueryFilters()` and restores only children with both the current deletion timestamp and the parent's cascade marker. Write deletion/restoration activity per affected task in the same transaction.
 
 - [ ] **Step 5: Add transport, ETag parsing, register, and verify**
 
@@ -364,7 +364,7 @@ Expected: FAIL because collaboration methods/controller are missing.
 
 - [ ] **Step 3: Implement assignee and label replacement**
 
-Distinct assignee IDs, load the complete set of active route-workspace memberships, and return `Invalid` on `assigneeIds` unless all match. Replace links and add `assignees_changed` with ordered added/removed IDs. No-op replacements write nothing.
+Begin a transaction, lock the workspace row using the membership service's lock order, then authorize and validate active members. Distinct assignee IDs, replace links, and add `assignees_changed` with ordered added/removed IDs. The workspace lock serializes concurrent full-set replacements; reload the response before commit. No-op replacements write nothing.
 
 Validate/normalize all label names first. Load labels by normalized names, create missing rows, replace links, and add `labels_changed` with ordered added/removed label IDs. On PostgreSQL unique violation specifically for `ux_labels_workspace_normalized_name`, roll back that attempt, clear failed added label entries, reload winning labels, and retry once in a fresh transaction. Do not catch unrelated violations.
 
@@ -436,9 +436,9 @@ Expected: FAIL because My Work service/controller are absent.
 
 - [ ] **Step 3: Implement timezone and authorized candidate query**
 
-Resolve via `TimeZoneInfo.FindSystemTimeZoneById`; convert `TimeProvider.GetUtcNow()` with `TimeZoneInfo.ConvertTime`; use `DateOnly.FromDateTime(local.DateTime)`. Map missing/unknown/invalid zones to a `timeZone` validation error.
+Resolve via `TimeZoneInfo.FindSystemTimeZoneById`; convert `TimeProvider.GetUtcNow()` with `TimeZoneInfo.ConvertTime`; use `DateOnly.FromDateTime(local.DateTime)`. Resolve local-date UTC boundaries by advancing invalid midnight wall times to the first valid instant and choosing the earliest instant when ambiguous. Map missing/unknown/invalid zones to a `timeZone` validation error.
 
-Query only tasks under unarchived projects where the caller has an active membership and either the workspace is Personal or the Team task has the caller as assignee. Project the authorized task summaries first. Then query activity only for those materialized task IDs and inspect the stable Task 3 JSON contract to find the latest creation-as-`done` or transition-to-`done` event. This two-query shape keeps JSON parsing simple without ever loading activity for inaccessible work.
+Query incomplete authorized tasks plus completed candidates whose create/update activity falls in a bounded UTC range covering the seven local dates. Use split collection queries. Then query only bounded activity for those materialized task IDs and inspect the stable Task 3 JSON contract to find the latest creation-as-`done` or transition-to-`done` event. This shape keeps JSON parsing simple without loading inaccessible or unbounded completed history.
 
 - [ ] **Step 4: Group once with approved precedence**
 

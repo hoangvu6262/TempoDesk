@@ -20,6 +20,7 @@ internal static class WorkItemControllerSupport
 
     public static TaskResponseDto ToDto(TaskSummary task) => new(
         task.Id,
+        task.WorkspaceId,
         task.ProjectId,
         task.ParentTaskId,
         task.Title,

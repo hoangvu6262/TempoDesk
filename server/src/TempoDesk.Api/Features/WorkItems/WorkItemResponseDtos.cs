@@ -13,6 +13,7 @@ public sealed record LabelResponseDto(Guid Id, string Name);
 
 public sealed record TaskResponseDto(
     Guid Id,
+    Guid WorkspaceId,
     Guid ProjectId,
     Guid? ParentTaskId,
     string Title,

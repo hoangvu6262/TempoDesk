@@ -60,6 +60,11 @@ workspace and then query by both workspace ID and resource ID. A missing
 membership and a guessed ID from another workspace both produce `404`. An
 active member whose role cannot perform an action receives `403`.
 
+Mutations begin a transaction and lock the workspace row before authorization
+or active-member validation. This uses the same lock order as membership
+removal, so a removed actor or assignee cannot pass a stale membership check.
+The workspace lock also serializes full-set assignee and label replacements.
+
 Project and task access is inherited from the workspace. No project-member
 table, private-resource branch, or client-authoritative permission check is
 introduced.
@@ -96,7 +101,8 @@ unchanged, while an explicit JSON `null` clears a nullable field. This avoids
 silently treating "not supplied" and "clear this value" as the same request.
 Non-nullable fields reject explicit `null` through Validation Problem Details.
 
-Task list responses remain flat and include `parentTaskId`; clients can render
+Task responses include `workspaceId`. Task list responses remain flat and
+include `parentTaskId`; clients can render
 the single supported nesting level without receiving duplicate nested task
 objects. Task detail responses include assignee and label summaries. Comments
 and activity use their dedicated chronological endpoints.
@@ -133,9 +139,10 @@ or migration is added. Deleting a parent soft-deletes its active direct
 subtasks in the same transaction with the same timestamp. Restoring the parent
 restores only subtasks whose `DeletedAt` equals that parent's deletion
 timestamp and whose deletion activity names that parent as `cascadeRootTaskId`.
-The activity marker disambiguates two separate deletions that receive the same
-clock value, so a subtask deleted earlier is not restored accidentally. Normal
-reads continue to use the SCRUM-38 task query filter.
+Deletion timestamps advance beyond prior deletion activity when the clock has
+not advanced. The timestamp plus activity marker disambiguates repeated
+delete/restore cycles, so a subtask deleted separately is not restored
+accidentally. Normal reads continue to use the SCRUM-38 task query filter.
 
 ## Optimistic Concurrency
 
@@ -208,6 +215,13 @@ Return six mutually exclusive groups in this precedence order:
 6. `unscheduled`: incomplete with no due date.
 
 The query shape and grouping guarantee that one task appears at most once.
+Completed candidates and their activity are restricted to a bounded UTC range
+covering the seven relevant local dates; incomplete work remains unbounded as
+required by the "all active tasks" contract. Collection loading uses split
+queries to avoid assignee-by-label Cartesian multiplication.
+Local-date boundaries advance through invalid wall-clock times and select the
+earliest instant for ambiguous times, including zones whose DST transition
+occurs at midnight.
 Timestamps remain UTC in persistence and responses; frontend presentation may
 format them in the user's locale. `DateOnly` task fields remain calendar dates
 and are never timezone-converted.

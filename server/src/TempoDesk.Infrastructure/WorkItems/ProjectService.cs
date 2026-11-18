@@ -45,6 +45,9 @@ internal sealed class ProjectService(
         if (validation.Errors.Count > 0)
             return Invalid<ProjectSummary>(validation.Errors);
 
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
+
         var access = await authorization.AuthorizeAsync(
             actorUserId,
             workspaceId,
@@ -65,6 +68,7 @@ internal sealed class ProjectService(
         };
         context.Projects.Add(project);
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return new(WorkItemResultStatus.Success, ToSummary(project));
     }
@@ -110,6 +114,9 @@ internal sealed class ProjectService(
                 return Invalid<ProjectSummary>(nameValidation.Errors);
         }
 
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
+
         var access = await authorization.AuthorizeAsync(
             actorUserId,
             workspaceId,
@@ -148,6 +155,7 @@ internal sealed class ProjectService(
         {
             project.UpdatedAt = timeProvider.GetUtcNow();
             await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return new(WorkItemResultStatus.Success, ToSummary(project));
@@ -159,6 +167,8 @@ internal sealed class ProjectService(
         Guid projectId,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await authorization.AuthorizeAsync(
             actorUserId,
             workspaceId,
@@ -178,6 +188,7 @@ internal sealed class ProjectService(
         project.ArchivedAt = now;
         project.UpdatedAt = now;
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return new(WorkItemResultStatus.Success, ToSummary(project));
     }

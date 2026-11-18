@@ -159,11 +159,24 @@ public sealed class TaskServiceTests(
         var grandchild = await service.CreateAsync(
             scenario.MemberUserId, scenario.TeamWorkspaceId, firstProject,
             Mutation("Grandchild", child.Value!.Id));
+        var otherRoot = await service.CreateAsync(
+            scenario.MemberUserId, scenario.TeamWorkspaceId, firstProject,
+            Mutation("Other root"));
+        var reparentedParent = await service.UpdateAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            parent.Value.Id,
+            new TaskPatch(
+                default, default, default, default, default, default, default,
+                new(true, otherRoot.Value!.Id)),
+            parent.Value.RowVersion);
 
         Assert.Equal(WorkItemResultStatus.Invalid, wrongProject.Status);
         Assert.Contains("parentTaskId", wrongProject.Errors!.Keys);
         Assert.Equal(WorkItemResultStatus.Invalid, grandchild.Status);
         Assert.Contains("parentTaskId", grandchild.Errors!.Keys);
+        Assert.Equal(WorkItemResultStatus.Invalid, reparentedParent.Status);
+        Assert.Contains("parentTaskId", reparentedParent.Errors!.Keys);
     }
 
     [Fact]
@@ -238,13 +251,29 @@ public sealed class TaskServiceTests(
             scenario.MemberUserId, scenario.TeamWorkspaceId,
             parent.Value.Id, deletedParent.Value!.RowVersion);
 
+        var deletedAgain = await service.DeleteAsync(
+            scenario.MemberUserId, scenario.TeamWorkspaceId,
+            parent.Value.Id, restored.Value!.RowVersion);
+        var restoredAgain = await service.RestoreAsync(
+            scenario.MemberUserId, scenario.TeamWorkspaceId,
+            parent.Value.Id, deletedAgain.Value!.RowVersion);
+
         Assert.Equal(WorkItemResultStatus.Success, restored.Status);
+        Assert.Equal(WorkItemResultStatus.Success, restoredAgain.Status);
         var rows = await context.Tasks.IgnoreQueryFilters()
             .Where(task => task.ProjectId == projectId)
             .ToDictionaryAsync(task => task.Id);
         Assert.Null(rows[parent.Value.Id].DeletedAt);
         Assert.Null(rows[cascaded.Value!.Id].DeletedAt);
         Assert.NotNull(rows[keptDeleted.Value.Id].DeletedAt);
+        var parentDeletions = await context.TaskActivityLogs
+            .Where(activity => activity.TaskId == parent.Value.Id &&
+                activity.EventType == TaskActivityTypes.Deleted)
+            .OrderBy(activity => activity.CreatedAt)
+            .Select(activity => activity.CreatedAt)
+            .ToListAsync();
+        Assert.Equal(2, parentDeletions.Count);
+        Assert.True(parentDeletions[1] > parentDeletions[0]);
     }
 
     [Fact]

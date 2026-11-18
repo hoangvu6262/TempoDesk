@@ -58,6 +58,9 @@ internal sealed class TaskService(
         if (errors.Count > 0)
             return Invalid<TaskSummary>(errors);
 
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
+
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -109,8 +112,6 @@ internal sealed class TaskService(
             entity, actorUserId, TaskActivityTypes.Created,
             new { status = entity.Status }, now));
 
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken);
         context.Tasks.Add(entity);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -147,6 +148,8 @@ internal sealed class TaskService(
         long rowVersion,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -183,6 +186,14 @@ internal sealed class TaskService(
             return Invalid<TaskSummary>("parentTaskId",
                 "Parent task must be an active top-level task in the project.");
         }
+        if (next.ParentTaskId is not null &&
+            await ActiveTasks(workspaceId).AnyAsync(
+                child => child.ParentTaskId == task.Id,
+                cancellationToken))
+        {
+            return Invalid<TaskSummary>("parentTaskId",
+                "A task with active subtasks cannot become a subtask.");
+        }
 
         var changes = Apply(task, next);
         if (changes.Count == 0)
@@ -194,8 +205,11 @@ internal sealed class TaskService(
             task, actorUserId, TaskActivityTypes.Updated,
             new { changes }, timeProvider.GetUtcNow()));
 
-        return await SaveMutationAsync(
+        var result = await SaveMutationAsync(
             task, workspaceId, cancellationToken);
+        if (result.Status == WorkItemResultStatus.Success)
+            await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
     public async Task<WorkItemResult<TaskSummary>> DeleteAsync(
@@ -205,6 +219,8 @@ internal sealed class TaskService(
         long rowVersion,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -227,7 +243,16 @@ internal sealed class TaskService(
 
         context.Entry(task).Property(item => item.RowVersion)
             .OriginalValue = rowVersion;
+        var affectedIds = activeChildren.Select(child => child.Id)
+            .Prepend(task.Id).ToArray();
+        var previousDeletion = await context.TaskActivityLogs
+            .Where(activity => affectedIds.Contains(activity.TaskId) &&
+                activity.EventType == TaskActivityTypes.Deleted)
+            .Select(activity => (DateTimeOffset?)activity.CreatedAt)
+            .MaxAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
+        if (previousDeletion >= now)
+            now = previousDeletion.Value.AddTicks(10);
         foreach (var affected in activeChildren.Prepend(task))
         {
             affected.DeletedAt = now;
@@ -236,8 +261,11 @@ internal sealed class TaskService(
                 new { cascadeRootTaskId = task.Id }, now));
         }
 
-        return await SaveMutationAsync(
+        var result = await SaveMutationAsync(
             task, workspaceId, cancellationToken);
+        if (result.Status == WorkItemResultStatus.Success)
+            await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
     public async Task<WorkItemResult<TaskSummary>> RestoreAsync(
@@ -247,6 +275,8 @@ internal sealed class TaskService(
         long rowVersion,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -282,8 +312,11 @@ internal sealed class TaskService(
                 new { }, now));
         }
 
-        return await SaveMutationAsync(
+        var result = await SaveMutationAsync(
             task, workspaceId, cancellationToken, includeDeletedOnConflict: true);
+        if (result.Status == WorkItemResultStatus.Success)
+            await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
     public Task<WorkItemResult<TaskSummary>> ReplaceAssigneesAsync(
@@ -322,6 +355,8 @@ internal sealed class TaskService(
         IReadOnlyCollection<Guid> userIds,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -374,13 +409,11 @@ internal sealed class TaskService(
             task, actorUserId, TaskActivityTypes.AssigneesChanged,
             new { addedUserIds = added, removedUserIds = removed }, now));
 
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        var summary = await ReloadSummaryAsync(
+            workspaceId, task.Id, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new(
-            WorkItemResultStatus.Success,
-            await ReloadSummaryAsync(workspaceId, task.Id, cancellationToken));
+        return new(WorkItemResultStatus.Success, summary);
     }
 
     private async Task<WorkItemResult<TaskSummary>> ReplaceLabels(
@@ -402,6 +435,9 @@ internal sealed class TaskService(
             normalized.TryAdd(validation.NormalizedValue!, validation.Value!);
         }
 
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
+
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -414,8 +450,6 @@ internal sealed class TaskService(
         if (task is null)
             return new(WorkItemResultStatus.NotFound);
 
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         foreach (var (normalizedName, displayName) in normalized)
         {
@@ -462,10 +496,10 @@ internal sealed class TaskService(
                 new { addedLabelIds = added, removedLabelIds = removed }, now));
             await context.SaveChangesAsync(cancellationToken);
         }
+        var summary = await ReloadSummaryAsync(
+            workspaceId, task.Id, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return new(
-            WorkItemResultStatus.Success,
-            await ReloadSummaryAsync(workspaceId, task.Id, cancellationToken));
+        return new(WorkItemResultStatus.Success, summary);
     }
 
     private async Task<WorkItemResult<IReadOnlyList<TaskCommentSummary>>>
@@ -511,6 +545,8 @@ internal sealed class TaskService(
         var validation = WorkItemValidation.Comment(body);
         if (validation.Errors.Count > 0)
             return Invalid<TaskCommentSummary>(validation.Errors);
+        await using var transaction = await WorkItemMutationLock.BeginAsync(
+            context, workspaceId, cancellationToken);
         var access = await AuthorizeAsync(
             actorUserId, workspaceId, WorkspaceAction.ManageTasks,
             cancellationToken);
@@ -537,14 +573,12 @@ internal sealed class TaskService(
             task, actorUserId, TaskActivityTypes.CommentAdded,
             new { commentId = comment.Id }, now));
 
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
         var email = await context.Users
             .Where(user => user.Id == actorUserId)
             .Select(user => user.Email!)
             .SingleAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new(
             WorkItemResultStatus.Success,
             new TaskCommentSummary(
@@ -745,17 +779,14 @@ internal sealed class TaskService(
         WorkTask task,
         Guid cascadeRootTaskId)
     {
-        var deletion = task.ActivityLogs
-            .Where(activity => activity.EventType == TaskActivityTypes.Deleted)
-            .OrderByDescending(activity => activity.CreatedAt)
-            .ThenByDescending(activity => activity.Id)
-            .FirstOrDefault();
-        return deletion is not null &&
+        return task.DeletedAt is not null && task.ActivityLogs.Any(deletion =>
+            deletion.EventType == TaskActivityTypes.Deleted &&
+            deletion.CreatedAt == task.DeletedAt &&
             deletion.Details.RootElement.TryGetProperty(
                 "cascadeRootTaskId", out var root) &&
             root.ValueKind == JsonValueKind.String &&
             root.TryGetGuid(out var rootId) &&
-            rootId == cascadeRootTaskId;
+            rootId == cascadeRootTaskId);
     }
 
     private static TaskSummary ToSummary(WorkTask task) => new(

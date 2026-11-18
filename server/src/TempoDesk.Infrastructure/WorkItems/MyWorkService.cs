@@ -29,17 +29,26 @@ internal sealed class MyWorkService(
         var local = TimeZoneInfo.ConvertTime(
             timeProvider.GetUtcNow(), zone!);
         var today = DateOnly.FromDateTime(local.DateTime);
+        var windowStartUtc = StartOfLocalDateUtc(today.AddDays(-6), zone!);
+        var windowEndUtc = StartOfLocalDateUtc(today.AddDays(1), zone!);
         var tasks = await context.Tasks
             .Where(task => task.Project.ArchivedAt == null &&
                 task.Project.Workspace.Members.Any(member =>
                     member.UserId == actorUserId &&
                     member.RemovedAt == null) &&
                 (task.Project.Workspace.Type == WorkspaceTypeValues.Personal ||
-                 task.Assignees.Any(link => link.UserId == actorUserId)))
+                 task.Assignees.Any(link => link.UserId == actorUserId)) &&
+                (task.Status != WorkItemStatusValues.Done ||
+                 task.ActivityLogs.Any(activity =>
+                     activity.CreatedAt >= windowStartUtc &&
+                     activity.CreatedAt < windowEndUtc &&
+                     (activity.EventType == TaskActivityTypes.Created ||
+                      activity.EventType == TaskActivityTypes.Updated))))
             .Include(task => task.Assignees)
             .ThenInclude(link => link.User)
             .Include(task => task.TaskLabels)
             .ThenInclude(link => link.Label)
+            .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -48,6 +57,8 @@ internal sealed class MyWorkService(
             ? []
             : await context.TaskActivityLogs
                 .Where(item => taskIds.Contains(item.TaskId) &&
+                    item.CreatedAt >= windowStartUtc &&
+                    item.CreatedAt < windowEndUtc &&
                     (item.EventType == TaskActivityTypes.Created ||
                      item.EventType == TaskActivityTypes.Updated))
                 .AsNoTracking()
@@ -135,6 +146,25 @@ internal sealed class MyWorkService(
             zone = null;
             return false;
         }
+    }
+
+    private static DateTimeOffset StartOfLocalDateUtc(
+        DateOnly date,
+        TimeZoneInfo zone)
+    {
+        var local = DateTime.SpecifyKind(
+            date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        while (zone.IsInvalidTime(local))
+            local = local.AddMinutes(1);
+
+        if (zone.IsAmbiguousTime(local))
+        {
+            var earliestOffset = zone.GetAmbiguousTimeOffsets(local).Max();
+            return new DateTimeOffset(local, earliestOffset).ToUniversalTime();
+        }
+
+        return new DateTimeOffset(
+            TimeZoneInfo.ConvertTimeToUtc(local, zone), TimeSpan.Zero);
     }
 
     private static bool IsCompletion(TaskActivityLog activity)

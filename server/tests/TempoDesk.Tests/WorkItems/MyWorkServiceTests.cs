@@ -40,6 +40,20 @@ public sealed class MyWorkServiceTests(
     }
 
     [Fact]
+    public async Task MidnightDstTransitionUsesFirstValidLocalInstant()
+    {
+        var now = new DateTimeOffset(
+            2026, 9, 12, 12, 0, 0, TimeSpan.Zero);
+        var scenario = await WorkItemScenario.CreateAsync(database, now);
+        await using var context = database.CreateContext();
+
+        var result = await Service(context, now).GetAsync(
+            scenario.OwnerUserId, "America/Santiago");
+
+        Assert.Equal(WorkItemResultStatus.Success, result.Status);
+    }
+
+    [Fact]
     public async Task PersonalIncludesAllAndTeamIncludesOnlyAssignedTasks()
     {
         var scenario = await WorkItemScenario.CreateAsync(database, Now);

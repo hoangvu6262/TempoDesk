@@ -145,6 +145,73 @@ public sealed class TaskCollaborationTests(
             item.ActorUserId == scenario.AdminUserId);
     }
 
+    [Fact]
+    public async Task MembershipRemovalSerializesWithAssignmentReplacement()
+    {
+        var (scenario, taskId) = await CreateTaskAsync();
+        await using var removal = database.CreateContext();
+        await using var transaction = await removal.Database
+            .BeginTransactionAsync();
+        await removal.Workspaces.FromSqlInterpolated($"""
+            SELECT * FROM public.workspaces
+            WHERE id = {scenario.TeamWorkspaceId}
+            FOR UPDATE
+            """).SingleAsync();
+        var membership = await removal.WorkspaceMembers.SingleAsync(member =>
+            member.WorkspaceId == scenario.TeamWorkspaceId &&
+            member.UserId == scenario.ViewerUserId);
+        membership.RemovedAt = Now;
+        await removal.SaveChangesAsync();
+
+        await using var assignment = database.CreateContext();
+        var pending = Service(assignment).ReplaceAssigneesAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            taskId,
+            [scenario.ViewerUserId]);
+        var completedBeforeRemoval = await Task.WhenAny(
+            pending, Task.Delay(TimeSpan.FromMilliseconds(250))) == pending;
+
+        Assert.False(completedBeforeRemoval);
+        await transaction.CommitAsync();
+        var result = await pending;
+        Assert.Equal(WorkItemResultStatus.Invalid, result.Status);
+    }
+
+    [Fact]
+    public async Task ConcurrentAssigneeReplacementsDoNotMergeSets()
+    {
+        var (scenario, taskId) = await CreateTaskAsync();
+        await using var firstContext = database.CreateContext();
+        await using var secondContext = database.CreateContext();
+        var first = Service(firstContext).ReplaceAssigneesAsync(
+            scenario.MemberUserId,
+            scenario.TeamWorkspaceId,
+            taskId,
+            [scenario.MemberUserId]);
+        var second = Service(secondContext).ReplaceAssigneesAsync(
+            scenario.AdminUserId,
+            scenario.TeamWorkspaceId,
+            taskId,
+            [scenario.ViewerUserId]);
+
+        var results = await Task.WhenAll(first, second);
+
+        Assert.All(results, result =>
+            Assert.Equal(WorkItemResultStatus.Success, result.Status));
+        await using var verification = database.CreateContext();
+        var assignees = await verification.TaskAssignees
+            .Where(link => link.TaskId == taskId)
+            .Select(link => link.UserId)
+            .ToListAsync();
+        Assert.Single(assignees);
+        Assert.Contains(assignees[0], new[]
+        {
+            scenario.MemberUserId,
+            scenario.ViewerUserId
+        });
+    }
+
     private async Task<(WorkItemScenario Scenario, Guid TaskId)>
         CreateTaskAsync()
     {
