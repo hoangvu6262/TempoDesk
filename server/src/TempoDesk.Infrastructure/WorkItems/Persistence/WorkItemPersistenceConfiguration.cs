@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TempoDesk.Application.WorkItems;
 
 namespace TempoDesk.Infrastructure.WorkItems.Persistence;
 

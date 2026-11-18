@@ -8,9 +8,11 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using TempoDesk.Application.Authentication;
+using TempoDesk.Application.WorkItems;
 using TempoDesk.Application.Workspaces;
 using TempoDesk.Infrastructure.Configuration;
 using TempoDesk.Infrastructure.Email;
+using TempoDesk.Infrastructure.WorkItems;
 using TempoDesk.Infrastructure.Workspaces;
 
 namespace TempoDesk.Infrastructure.Identity;
@@ -107,6 +109,9 @@ public static class IdentityConfiguration
         services.AddScoped<IWorkspaceAuthorizationService,
             WorkspaceAuthorizationService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<ITaskService, TaskService>();
+        services.AddScoped<IMyWorkService, MyWorkService>();
         services.AddScoped<IWorkspaceMembershipService,
             WorkspaceMembershipService>();
         services.AddScoped<IAccountRegistrationService,

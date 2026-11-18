@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TempoDesk.Application.WorkItems;
 using Npgsql;
 using TempoDesk.Infrastructure.Identity;
 using TempoDesk.Infrastructure.Workspaces.Persistence;

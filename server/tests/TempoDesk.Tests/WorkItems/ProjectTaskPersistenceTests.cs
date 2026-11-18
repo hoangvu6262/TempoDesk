@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using TempoDesk.Application.WorkItems;
 using TempoDesk.Infrastructure.Identity;
 using TempoDesk.Infrastructure.WorkItems.Persistence;
 using TempoDesk.Infrastructure.Workspaces.Persistence;

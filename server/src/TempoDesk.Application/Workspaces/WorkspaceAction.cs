@@ -12,5 +12,8 @@ public enum WorkspaceAction
     RemoveMemberOrViewer,
     RemoveAdmin,
     TransferOwnership,
-    LeaveWorkspace
+    LeaveWorkspace,
+    ViewWorkItems,
+    ManageProjects,
+    ManageTasks
 }
